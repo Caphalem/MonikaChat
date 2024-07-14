@@ -10,13 +10,13 @@ namespace MonikaChat.Client.Services
     public class MonikaInteractionService : IAIInteractionService
     {
 		private const string PUBLIC_KEY_PEM = @"-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxrPUX8CRAnBahV+uC9zs
-7c7HQBbYCJG4xKVFhmiheqDXAT62dLeo8V0C3KzmIjQNOAwrOYwKs3P2vl/Hg9i8
-I226i//JSks0LI3zRqTjYcxW5lwWrpHoKgkjt1qfoQ6GV/Hgyl9n9weUhEmbgQER
-lcaxy1yDZ4UvzYwYvBwhRgXFOKJu54438p5OBqXVEZc40cjhL4eyM6XA29Abgv1K
-+F+j9UD4sD6MmSpRRQf0TZfKqS+HF3RYfDn/UaVnaoLOn/AqJYW8X/FW51VvhnbN
-+BWeiB5sZeaFPT7PrwNK3dJzHKFlEZjnyjAYZtPFGMewHMu7Vol3n8v8FqfFecUR
-jQIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuuh3Di/z74J3O9O3HvLy
+mJxrbAp5MKuNMBTH7pqJiqGvK8R9ivEZs78MU4BzvogTPlz62o0fdVgBMj48Qxus
+cc96vmLR+KHWEQBcauYWDFfIP+Jyypt3UbsRtxBgEuE9wU5/VFx2x7r7uKrwiA9j
+stYCXpHnJ9FJikPwOv54mi+MeG6eG7mszunwx2hVYoGSvA4vBUB07b94Fhnq2zua
+zfVZqOZ+UdBKNjY+uXzaLg7Iqda+ARhETVKugWNz55+46QzsN243N7bTOXp0dhkH
+0rmK7e+i2a/IAN7sS/5VtrxQZJ+fwaXmqAPlmft2vDhUd1SnBnkIJACU4AC6EIsZ
+rQIDAQAB
 -----END PUBLIC KEY-----";
 		private const string INTERACT_ENDPOINT = "monika/interact";
 

@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/MonikaChat.Server/appsettings.Development.json
+/MonikaChat.Server/appsettings.Production.json
