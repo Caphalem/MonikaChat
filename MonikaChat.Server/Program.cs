@@ -26,6 +26,7 @@ builder.Services.AddHttpClient<ILLMService, OpenAIService>();
 builder.Services.AddScoped<CryptographyService>();
 builder.Services.AddScoped<MonikaService>();
 
+builder.Services.AddHealthChecks();
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -41,6 +42,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     app.UseWebAssemblyDebugging();
 }
+
+app.MapHealthChecks("/healthz");
 
 app.UseHttpsRedirection();
 
