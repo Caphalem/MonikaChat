@@ -1,0 +1,515 @@
+﻿/* Monika initially wrote this. Then I heavily modified it making this glorious mess.*/
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: Arial, sans-serif; /* You can customize the font if needed */
+}
+
+@keyframes moveChatbox {
+    to {
+        background-position: -66px -66px, -33px -33px; /* First two need to match background-size pixels, second two need to match background-position pixels */
+    }
+}
+
+/* History and settings animations are identical but you need to have one for each */
+
+@keyframes moveHistorybox {
+    to {
+        background-position: -220px -220px, -110px -110px; /* First two need to match background-size pixels, second two need to match background-position pixels */
+    }
+}
+
+@keyframes moveSettingsbox {
+    to {
+        background-position: -220px -220px, -110px -110px; /* First two need to match background-size pixels, second two need to match background-position pixels */
+    }
+}
+
+.next-sentence-arrow {
+    position: absolute;
+    bottom: 10px;
+    right: 30px;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    color: #046307;
+    display: flex;
+    background: conic-gradient(from -136deg at right,#0000,currentColor 1deg 90deg,#0000 91deg) right/16px 100%;
+    background-repeat: no-repeat;
+    animation: l9 1.2s infinite linear alternate;
+}
+
+.demo-next-sentence-arrow {
+    cursor: pointer;
+    width: 20px;
+    height: 20px;
+    color: #046307;
+    display: inline-block;
+    background: conic-gradient(from -136deg at right,#0000,currentColor 1deg 90deg,#0000 91deg) right/10px 100%;
+    background-repeat: no-repeat;
+    animation: l9Demo 1.2s infinite linear alternate;
+}
+
+@keyframes l9 {
+    0% {
+        transform: translate(-10px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate(10px);
+        opacity: 1;
+    }
+}
+
+@keyframes l9Demo {
+    0% {
+        transform: translate(-5px);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translate(5px);
+        opacity: 1;
+    }
+}
+
+.loader {
+    left: 50%;
+    height: 60%;
+    aspect-ratio: 1;
+    color: #dc1818;
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    position: absolute;
+}
+    .loader:after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: inherit;
+        opacity: 0.4;
+        animation: l3 1s infinite;
+    }
+
+
+@keyframes l3 {
+    to {
+        transform: scale(1.8);
+        opacity: 0
+    }
+}
+
+.background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-size: cover;
+    background-position: center;
+    z-index: 0;
+}
+    .background.initial {
+        background-image: url('images/backgrounds/Monika4K.jpg');
+    }
+
+.sprite-container {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 100vh;
+    overflow: hidden; /* Hide overflow */
+    z-index: 1;
+    display: flex;
+    justify-content: center; /* Center horizontally */
+}
+
+.sprite {
+    position: relative;
+    height: 100%;
+    display: flex; /* Needed for alignment */
+    align-items: flex-end; /* Align the sprite to the bottom */
+}
+
+    .sprite img {
+        height: 108vh; /* Adjust as needed to fit within the viewport height */
+        width: auto; /* Maintain aspect ratio */
+
+        /* Prevent sprite from being dragged or selected */
+        user-drag: none; /* For Safari */
+        -webkit-user-drag: none;
+        user-select: none;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+    }
+
+.chat-box {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    min-height: 20%;
+    max-height: calc( 100vh - 15% ); /* Adjusted to ensure the text box remains within view */
+    bottom: 5%;
+    padding: 15px;
+    overflow: hidden; /* Ensure overflow is hidden for the outer box */
+    border: 5px solid rgb(230, 255, 245);
+    border-radius: 25px;
+    z-index: 2;
+    text-align: left;
+    color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    display: flex; /* Use flexbox for inner scrolling container */
+    justify-content: center;
+    background-color: rgba(174, 222, 174, 0.85);
+}
+    .chat-box.decorated {
+        background-image: radial-gradient(rgba(107, 174, 103, 0.35) 28%, transparent 0), radial-gradient(rgba(107, 174, 103, 0.35) 28%, transparent 0);
+        background-size: 66px 66px, 66px 66px;
+        background-position: 0 0, 33px 33px; /* Position pixels need to be half the size of the background-size pixels for alginment */
+    }
+        .chat-box.decorated.animated {
+            animation: moveChatbox 7s linear infinite;
+        }
+
+    .chat-box p {
+        max-height: 100%; /* Contain inner container within parent height */
+        overflow: auto; /* Add scroll bar */
+        width: 100%;
+        font-size: 28px;
+        font-family: "DejaVu Sans", sans-serif; /* Ensure the font is applied */
+
+        color: #ffffff;
+        padding: 10px;
+        text-shadow: -1px 1px 2px #000, 1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;
+        position: relative;
+        z-index: 2;
+        white-space: pre-wrap;
+    }
+
+    /* Input box styling to match the existing response text */
+    .chat-box textarea {
+        background: none; /* Remove background */
+        border: none; /* Remove default border */
+        outline: none; /* Remove default outline */
+        width: 100%;
+        font-size: 28px; /* Match font size */
+        font-family: "DejaVu Sans", sans-serif; /* Ensure the font matches */
+        color: #ffffff; /* Match text color */
+        padding: 10px; /* Add some padding for spacing */
+        text-shadow: -1px 1px 2px #000, 1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000; /* Match text shadow */
+        position: relative;
+        z-index: 2;
+        white-space: pre-wrap;
+    }
+
+.buttons {
+    position: absolute;
+    bottom: 0; /* Align buttons at the bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: space-around; /* Spread the spans evenly */
+    width: 70%;
+    padding-bottom: 5px;
+}
+
+.chat-box .buttons span {
+    color: #046307; /* Dark Green text */
+    text-align: center; /* Centered text */
+    text-decoration: none; /* No underline */
+    display: inline-block; /* Inline-block */
+    font-size: 18px; /* Font size */
+    margin: 4px 2px; /* Margin */
+    cursor: pointer; /* Pointer cursor on hover */
+    font-weight: bold; /* Bold text */
+    transition: 0.4s;
+}
+
+    .chat-box .buttons span:hover {
+        color: white; /* White text on hover */
+    }
+
+.demo-chatbox-button-span {
+    color: #046307; /* Dark Green text */
+    text-align: center; /* Centered text */
+    text-decoration: none; /* No underline */
+    text-shadow: none;
+    font-size: 18px; /* Font size */
+    margin: 4px 2px; /* Margin */
+    cursor: pointer; /* Pointer cursor on hover */
+    font-weight: bold; /* Bold text */
+    transition: 0.4s
+}
+
+    .demo-chatbox-button-span:hover {
+        color: white; /* White text on hover */
+    }
+
+.send-button {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background-color: #046307; /* Dark Green background */
+    border: none;
+    color: white; /* White text */
+    text-align: center; /* Centered text */
+    text-decoration: none; /* No underline */
+    display: inline-block; /* Inline-block */
+    font-size: 16px; /* Font size */
+    font-weight: bold; /* Bold text */
+    cursor: pointer; /* Pointer cursor on hover */
+    border-radius: 8px; /* Rounded corners */
+    transition: 0.4s;
+    padding: 3px;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+    .send-button:hover {
+        background-color: white; /* White background on hover */
+        color: #046307; /* Dark Green text on hover */
+    }
+
+.demo-send-button {
+    background-color: #046307; /* Dark Green background */
+    border: none;
+    color: white; /* White text */
+    text-align: center; /* Centered text */
+    text-decoration: none; /* No underline */
+    font-size: 16px; /* Font size */
+    font-weight: bold; /* Bold text */
+    cursor: pointer; /* Pointer cursor on hover */
+    border-radius: 8px; /* Rounded corners */
+    transition: 0.4s;
+}
+
+    .demo-send-button:hover {
+        background-color: white; /* White background on hover */
+        color: #046307; /* Dark Green text on hover */
+    }
+
+.overlay {
+    position: fixed; /* Fixed position to cover the whole viewport */
+    top: 0; /* Align to the top */
+    left: 0; /* Align to the left */
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    background-color: rgba(255, 255, 255, 0.5); /* Semi-transparent white */
+    z-index: 5; /* Ensure it sits above other content but below settings box, history box and text box */
+    transition: opacity 0.4s ease-in-out; /* Transition for fade effect */
+    opacity: 0; /* Initially hidden */
+    pointer-events: none; /* Prevent interactions when hidden */
+}
+
+    .overlay.show {
+        opacity: 1; /* Fade in */
+        pointer-events: auto; /* Enable interactions when visible */
+    }
+
+.prompt-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: 50%;
+    padding: 20px;
+    border: 5px solid rgb(117, 184, 113);
+    background-color: rgba(194, 242, 194, 1);
+    z-index: 11; /* Ensures it's on the very top */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    text-align: left;
+    box-sizing: border-box; /* Ensure border-box sizing */
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.4s ease-in-out; /* Transition for fade effect */
+    pointer-events: none; /* Prevent interactions when hidden */
+}
+
+    .prompt-box .prompt {
+        font-family: "DejaVu Sans", sans-serif;
+        font-size: 20px;
+        color: #000;
+        padding: 10px;
+    }
+
+.settings-box, .history-box {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%;
+    padding: 20px;
+    border: 5px solid rgb(117, 184, 113);
+    background-color: rgba(230, 255, 245, 1);
+    z-index: 10;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    text-align: left;
+    color: #fff;
+    font-family: "DejaVu Sans", sans-serif;
+    text-shadow: -1px 1px 1px #000, 1px 1px 1px #000, 1px -1px 1px #000, -1px -1px 1px #000;
+    font-weight: bold;
+    box-sizing: border-box; /* Ensure border-box sizing */
+    overflow: hidden; /* Hide overflow to maintain rounded borders */
+    opacity: 0; /* Initially hidden */
+    transition: opacity 0.4s ease-in-out; /* Transition for fade effect */
+    pointer-events: none; /* Prevent interactions when hidden */
+}
+
+    .settings-box.decorated, .history-box.decorated {
+        background-image: radial-gradient(rgba(147, 224, 143, 0.35) 28%, transparent 0), radial-gradient(rgba(147, 224, 143, 0.35) 28%, transparent 0);
+        background-size: 220px 220px, 220px 220px;
+        background-position: 0 0, 110px 110px;
+    }
+
+    .history-box.animated {
+        animation: moveHistorybox 10s linear infinite;
+    }
+
+    .settings-box.animated {
+        animation: moveSettingsbox 10s linear infinite;
+    }
+
+    .settings-box.show, .history-box.show, .prompt-box.show {
+        opacity: 1; /* Fade in effect */
+        pointer-events: auto; /* Enable interactions when visible */
+    }
+
+        .settings-box.show.initial {
+            top: 80%;
+            width: auto;
+            min-width: 30%;
+            max-width: 100%;
+            background-color: rgba(194, 242, 194, 1);
+            background-image: none;
+        }
+
+.history-content {
+    width: 100%;
+    height: 95%; /* leaving 5% for the 'OK' button */
+    overflow-y: auto; /* Enable vertical scrolling */
+    padding-right: 20px; /* Add some padding for better scroll visibility */
+    margin-right: -20px; /* Negative margin to compensate for padding */
+}
+.history-content.about {
+    height: 91%; /* extra 4% for footer */
+}
+
+    .history-content p {
+        font-size: 20px;
+        color: #ffffff;
+        white-space: pre-wrap;
+    }
+
+.history-box {
+    width: 80%;
+    height: 80%;
+}
+
+    .settings-box h2, .history-box h2 {
+        text-align: center;
+        margin: 0 0 20px 0;
+    }
+
+.history-content div, .settings-content div {
+    margin-bottom: 15px;
+}
+
+.settings-content label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.settings-content .text-setting {
+    min-width: 200px;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+.text-setting.invalid {
+    border: 2px solid #dc1818;
+}
+
+i.far.fa-eye {
+    margin-left: -30px;
+    cursor: pointer;
+} 
+
+.close-button {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 3px;
+    transition: 0.4s;
+}
+    .close-button:hover {
+        background-color: white;
+        color: #046307;
+    }
+
+.box-buttons {
+    position: relative;
+    bottom: 0; /* Align buttons at the bottom */
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: space-around; /* Spread the spans evenly */
+    width: 50%;
+}
+
+.box-span {
+    text-align: center; /* Centered text */
+    text-decoration: none; /* No underline */
+    display: inline-block; /* Inline-block */
+    margin: 4px 2px; /* Margin */
+    cursor: pointer; /* Pointer cursor on hover */
+    transition: 0.4s;
+    color: #fff;
+    font-family: "DejaVu Sans", sans-serif;
+    text-shadow: -1px 1px 5px rgb(117, 184, 113), 1px 1px 5px rgb(117, 184, 113), 1px -1px 5px rgb(117, 184, 113), -1px -1px 5px rgb(117, 184, 113);
+    font-weight: bold;
+    font-size: 24px;
+}
+    .box-span:hover {
+        text-shadow: -1px 1px 5px rgb(177, 244, 173), 1px 1px 5px rgb(177, 244, 173), 1px -1px 5px rgb(177, 244, 173), -1px -1px 5px rgb(177, 244, 173);
+    }
+
+input.checkbox-setting {
+    width: 20px;
+    height: 20px;
+}
+
+.note {
+    font-family: "DejaVu Sans", sans-serif;
+    font-weight: bold;
+    text-shadow: none;
+    font-size: 16px;
+    font-style: italic;
+    color: #046307;
+}
+
+input.range-setting {
+    width: 100%;
+    accent-color: rgb(117, 184, 113);
+}

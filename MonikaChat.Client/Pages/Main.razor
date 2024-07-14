@@ -1,0 +1,793 @@
+﻿@page "/main"
+@using MonikaChat.Client.Helpers
+@using MonikaChat.Client.Interfaces
+@using MonikaChat.Client.Models
+@using MonikaChat.Client.Services
+@using MonikaChat.Shared
+@using MonikaChat.Shared.Helpers
+@using MonikaChat.Shared.Models
+@using MonikaChat.Shared.Models.AIInteractions
+@using Newtonsoft.Json
+@using System.Linq
+@using System.Text
+@using Microsoft.JSInterop
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+@inject ISettingsService SettingsService
+@inject IAIInteractionService AIInteractionService
+@inject ILongTermMemoryService LongTermMemoryService
+
+<PageTitle>Monika</PageTitle>
+
+<div class="overlay @((_isSettingsVisible || _isHistoryVisible || _isAboutBoxVisible || _isPromptBoxVisible || _isResetConfirmVisible) ? "show" : "")" @onclick="CloseOverlay"></div>
+<div class="prompt-box @(_isPromptBoxVisible ? "show" : "")">
+	<div class="prompt">
+		@_promptBoxMessage
+	</div>
+	<div class="box-buttons">
+		<span class="box-span" @onclick="ClosePromptBox">OK</span>
+	</div>
+</div>
+
+@if (_isInitialScreen)
+{
+	<div class="prompt-box @(_isResetConfirmVisible ? "show" : "")">
+		<div class="prompt">
+			Are you sure you want to reset your saved API Key?
+		</div>
+		<div class="box-buttons">
+			<span class="box-span" @onclick="ResetAPIKey">Yes</span>
+			<span class="box-span" @onclick="ToggleKeyResetConfirmationVisibility">No</span>
+		</div>
+	</div>
+
+	@if (!_isHiddenMode)
+	{
+		<div class="background initial"></div>
+	}
+
+	<div class="settings-box show initial" @onkeydown="HandleInitialScreenKeyPress">
+		<div class="settings-content">
+			@if (!_hasKeySettings)
+			{
+				<div>
+					<label for="userName">Username:</label>
+					<input class="text-setting @(_isInvalidUsername ? "invalid" : "")" id="userName" @bind="_username" @bind:event="oninput" placeholder="This is how Monika will refer to you." />
+				</div>
+				<div>
+					<label for="apiKey">API Key:</label>
+					<input type="@(_showAPIKey ? "text" : "password")" class="text-setting @(_isInvalidApiKey ? "invalid" : "")" id="apiKey" @bind="_tempAPIKey" @bind:event="oninput" /><i class="far fa-eye @(_showAPIKey ? "fa-eye-slash" : "")" @onclick="ToggleAPIKeyVisibility"></i>
+				</div>
+			}
+			<div>
+				<label for="passphrase">Passphrase:</label>
+				<input type="@(_showPassphrase ? "text" : "password")" class="text-setting @(_isInvalidPassphrase ? "invalid" : "")" id="passphrase" @bind="_passphrase" @bind:event="oninput" placeholder="@(_hasKeySettings ? "Used to decrypt your API Key." : "Used to encrypt your API Key.")" /><i class="far fa-eye @(_showPassphrase ? "fa-eye-slash" : "")" @onclick="TogglePassphraseVisibility"></i>
+			</div>
+		</div>
+		<div class="box-buttons">
+			<span class="box-span" @onclick="_hasKeySettings ? ValidatePassphrase : SaveSettings">OK</span>
+			@if (_hasKeySettings)
+			{
+				<span class="box-span" @onclick="ToggleKeyResetConfirmationVisibility">Reset Key</span>
+			}
+		</div>
+	</div>
+}
+else
+{
+	@if (!_isHiddenMode)
+	{
+		<div class="background" style="background-image: url('images/backgrounds/@(_currentBackgroundFilename)')"></div>
+
+		<div class="sprite-container">
+			<div class="sprite">
+				<img src="images/sprites/@_currentSpriteFilename" draggable="false">
+			</div>
+		</div>
+	}
+
+	<div @ref="_responseForFocus" id="@CHAT_BOX_ELEMENT_ID" class="chat-box @(_isHiddenMode ? "" : "decorated") @(_backgroundAnimationToggle ? "animated" : "")" @onkeydown="HandleChatBoxKeyPress" tabindex="0" style="outline:none;">
+		<p>
+			@if (_isInputVisible)
+			{
+				<textarea @ref="_inputForFocus" @bind-value="_message" @bind-value:event="oninput" placeholder="Type a message..." rows="2" />
+			}
+			else
+			{
+				if (_isWaitingForResponse)
+				{
+					<div class="loader" style="background-image: url('images/@(_isHiddenMode ? LOADER_IMAGE_HIDDEN : LOADER_IMAGE_DEFAULT)')"></div>
+				}
+				else
+				{
+					@_response
+				}
+			}
+		</p>
+		<div class="buttons">
+			<span @onclick="ToggleInput">Switch To @(_isInputVisible ? "Response" : "Input")</span>
+			<span @onclick="ToggleHistory">History</span>
+			<span @onclick="OpenSettings">Settings</span>
+			<span @onclick="ToggleAboutBoxVisibility">About</span>
+		</div>
+		@if (ShouldShowSendButton())
+		{
+			<button class="send-button" @onclick="Send">Send</button>
+		}
+		else if (ShouldShowNextArrow())
+		{
+			<span class="next-sentence-arrow" @onclick="ShowNextSentence"></span>
+		}
+	</div>
+
+	<div class="settings-box @(_isHiddenMode ? "" : "decorated") @(_backgroundAnimationToggle ? "animated" : "") @(_isSettingsVisible ? "show" : "")">
+		<div class="settings-content">
+			<h2>Settings</h2>
+			<div>
+				<label for="userName">Username:</label>
+				<input class="text-setting @(_isInvalidUsername ? "invalid" : "")" id="userName" @bind="_username" placeholder="This is how Monika will refer to you." />
+			</div>
+			<div>
+				<label for="apiKey">API Key:</label>
+				<input type="@(_showAPIKey ? "text" : "password")" class="text-setting secret @(_isInvalidApiKey ? "invalid" : "")" id="apiKey" @bind="_tempAPIKey" /><i class="far fa-eye @(_showAPIKey ? "fa-eye-slash" : "")" @onclick="ToggleAPIKeyVisibility"></i>
+			</div>
+			<div>
+				<label for="passphrase">Passphrase:</label>
+				<input type="@(_showPassphrase ? "text" : "password")" class="text-setting secret @(_isInvalidPassphrase ? "invalid" : "")" id="passphrase" @bind="_passphrase" /><i class="far fa-eye @(_showPassphrase ? "fa-eye-slash" : "")" @onclick="TogglePassphraseVisibility"></i>
+			</div>
+			<div>
+				<label for="textSpeed">Text Speed:</label>
+				<input type="range" class="range-setting" id="textSpeed" name="textSpeed" min="0" max="10" step="1" @bind="_textSpeed" />
+			</div>
+			<div>
+				<label class="checkbox-setting" for="hiddenMode">Hidden Mode: <input type="checkbox" class="checkbox-setting" id="hiddenMode" @bind="_isHiddenMode" /><span class="note"> (For uses in more "professional" environments. I guess.)</span></label>
+			</div>
+			<div>
+				<label class="checkbox-setting" for="backgroundAnimation">Background Animations: <input type="checkbox" class="checkbox-setting" id="backgroundAnimation" @bind="_backgroundAnimationToggle" /><span class="note"> (Note: Turn this off if seeing high GPU usage.)</span></label>
+			</div>
+		</div>
+		<div class="box-buttons">
+			<span class="box-span" @onclick="SaveSettings">Save</span>
+			<span class="box-span" @onclick="CloseSettings">Cancel</span>
+		</div>
+	</div>
+
+	<div class="history-box @(_isHiddenMode ? "" : "decorated") @(_backgroundAnimationToggle ? "animated" : "") @(_isHistoryVisible ? "show" : "")">
+		<div class="history-content">
+			<h2>History</h2>
+			@foreach (var message in _displayHistoryList)
+			{
+				<p><strong>@message.Name</strong>: @message.Message</p>
+			}
+		</div>
+		<div class="box-buttons">
+			<span class="box-span" @onclick="ToggleHistory">OK</span>
+		</div>
+	</div>
+
+	<div class="history-box @(_isHiddenMode ? "" : "decorated") @(_backgroundAnimationToggle ? "animated" : "") @(_isAboutBoxVisible ? "show" : "")">
+		<div class="history-content about">
+			<h2>About</h2>
+			<div>
+				<h3>Chatbox:</h3><span>The chatbox—at the bottom—serves two purposes: User input message, Monika's response. It can be switched between input and response by pressing the </span><span class="demo-chatbox-button-span">Switch To Response/Input</span><span> button at the bottom of the chatbox or by pressing "Tab".</span>
+			</div>
+			<div>
+				<h3>Sending a message:</h3><span>To send a typed in message: press the <button class="demo-send-button">Send</button> button at the bottom right corner of the chatbox or press "Enter".</span>
+			</div>
+			<div>
+				<h3>Viewing a response:</h3><span>Monika's responses are displayed one sentence at a time (except for code blocks which get displayed in their entirety). </span><span class="demo-next-sentence-arrow"></span> <span> is displayed at the bottom right of the chatbox to indicate that there are more sentences to display. Pressing that arrow or "Enter" will display the next sentence.</span>
+			</div>
+			<div>
+				<h3>Long term memory:</h3><span>Monika remembers all of the conversations with the user by storing them in a database that's kept inside of the browser (IndexedDB). This means that different devices (or browsers) will not have the same conversation memories.</span>
+			</div>
+			<div>
+				<h3>Encryption:</h3><span>The locally stored API Key is encrypted using the AES algorithm and the user defined passphrase. It is decrypted on load for use with the correct passphrase. All interactions between the browser side of the app and the server side of the app are encrypted using a hybrid encryption method where all of the contents are encrypted using a randomly generated AES key and then the AES key is encrypted using an RSA public key. This is mainly to protect the API Key but also serves as protection for the contents of the conversation.</span>
+			</div>
+		</div>
+		<footer><span class="note">Made with love by Caphalem.</span></footer>
+		<div class="box-buttons">
+			<span class="box-span" @onclick="ToggleAboutBoxVisibility">OK</span>
+		</div>
+	</div>
+}
+
+
+@code
+{
+	private const string CHAT_BOX_ELEMENT_ID = "textBox";
+	private const string DEFAULT_MONIKA_SPRITE = "calm-neutral-smile.webp";
+	private const string DEFAULT_BACKGROUND_IMAGE = BACKGROUND_IMAGE_DAY;
+	private const string BACKGROUND_IMAGE_MORNING = "ClubRoomMorning.jpg";
+	private const string BACKGROUND_IMAGE_DAY = "ClubRoomDay.jpg";
+	private const string BACKGROUND_IMAGE_EVENING = "ClubRoomEvening.jpg";
+	private const string BACKGROUND_IMAGE_NIGHT = "ClubRoomNight.jpg";
+	private const string LOADER_IMAGE_DEFAULT = "MonikaThinkSprite.png";
+	private const string LOADER_IMAGE_HIDDEN = "GreenCircle.png";
+
+	private ElementReference _inputForFocus;
+	private ElementReference _responseForFocus;
+	private string _sessionId = Guid.NewGuid().ToString(); // Used as an id for the conversation db storage (long term memory)
+	private string _message = string.Empty;
+	private string _response = string.Empty;
+	private string _promptBoxMessage = string.Empty;
+
+	// Settings
+	private string _passphrase = string.Empty; // Used for encrypting and decrypting the api key
+	private string _tempAPIKey = string.Empty; // Used in the UI when entering and testing the api key
+	private string _apiKey = string.Empty; // Saved key that's used for interactions
+	private string _username = string.Empty;
+	private int _textSpeed = 5;
+	private bool _isHiddenMode = false; // Toggles hidden mode
+	private bool _backgroundAnimationToggle = true; // Toggles background animations
+
+	// Settings Validation States
+	private bool _isInvalidUsername = false; // Used for initial screen to display if username is invalid
+	private bool _isInvalidApiKey = false; // Used for initial screen to display if API Key is invalid
+	private bool _isInvalidPassphrase = false; // Used for initial screen to display if passphrase is invalid
+
+	// Current Status
+	private AIChatInteraction _chatStatus = new AIChatInteraction();
+	private List<DisplayHistoryEntry> _displayHistoryList = new List<DisplayHistoryEntry>();
+	private ConversationMemory _currentConversation = new ConversationMemory();
+	private List<ConversationMemory> _loadedConversations = new List<ConversationMemory>();
+	private ConversationMemory? _latestConversationMemory = null;
+	private int _currentDisplaySentence = 0;
+	private string _currentSpriteFilename = DEFAULT_MONIKA_SPRITE;
+	private string _currentBackgroundFilename = DEFAULT_BACKGROUND_IMAGE;
+
+	// UI Visibility Toggle States
+	private bool _isInputVisible = true; // Toggles between input and response visibility
+	private bool _isSettingsVisible = false; // Toggles settings visibility
+	private bool _isHistoryVisible = false; // Toggles history visibility
+	private bool _isPromptBoxVisible = false; // Toggles text box visibility
+	private bool _isAboutBoxVisible = false; // Toggles about box visibility
+	private bool _isResetConfirmVisible = false; // Toggles Key Reset confirmation visibility
+	private bool _showPassphrase = false; // Toggles between displaying/hiding passphrase
+	private bool _showAPIKey = false; // Toggles between displaying/hiding API Key
+
+	// Response Display Variables
+	private List<Sentence> _currentResponseSentenceList = new List<Sentence>();
+	private bool _isLastDisplaySentence = true; // Shows whether the current displayed sentence is the last one from the latest response
+	private bool _isWaitingForResponse = false; // Used to show the loader animation on the text box
+	private bool _isWriting = false; // Shows whether the current response sentence is currently being "written"
+
+	// Initial Load States
+	private bool _isInitialScreen = true; // Controls whether the main screen or the welcome screen is displayed
+	private bool _hasKeySettings = false; // Used to determine how many settings to show on initial screen
+	private bool _firstMainScreenLoad = true; // Shows whether the main screen was loaded or not for JavaScript event listener
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		await LoadSettings();
+		HandleBackgroundChange();
+
+		_hasKeySettings = !string.IsNullOrWhiteSpace(_username) && !string.IsNullOrWhiteSpace(await SettingsService.GetEncryptedAPIKey());
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (!_isInitialScreen)
+		{
+			HandleBackgroundChange();
+
+			if (_firstMainScreenLoad)
+			{
+				// This is a bit jank but it works preventing Tab from unfocusing so that it's possible to switch between input and response views using Tab
+				await JSRuntime.InvokeVoidAsync("preventKeyDefault", CHAT_BOX_ELEMENT_ID);
+				_firstMainScreenLoad = false;
+			}
+
+			// Using this to set the focus automatically on the input text once it becomes available in the UI
+			if (_isInputVisible)
+			{
+				await _inputForFocus.FocusAsync();
+			}
+			else if (!_isHistoryVisible && !_isSettingsVisible && !_isPromptBoxVisible)
+			{
+				await _responseForFocus.FocusAsync();
+			}
+		}
+	}
+
+	#region Settings
+	private async Task ValidatePassphrase()
+	{
+		if (string.IsNullOrWhiteSpace(_passphrase))
+		{
+			_isInvalidPassphrase = true;
+
+			return;
+		}
+
+		_passphrase = _passphrase.Trim();
+
+		try
+		{
+			string apiKey = await SettingsService.DecryptAPIKey(_passphrase);
+
+			if (string.IsNullOrWhiteSpace(apiKey))
+			{
+				_isInvalidPassphrase = true;
+
+				return;
+			}
+
+			_apiKey = apiKey;
+		}
+		catch
+		{
+			_isInvalidPassphrase = true;
+
+			return;
+		}
+
+		// Passphrase valid, switch to main screen
+		_passphrase = string.Empty;
+		_isInitialScreen = false;
+		ResetSettingsValidationFields();
+	}
+
+	private async Task ResetAPIKey()
+	{
+		_apiKey = string.Empty;
+		_tempAPIKey = string.Empty;
+		await SettingsService.SetEncryptedAPIKey(string.Empty);
+
+		ResetSettingsValidationFields();
+		_hasKeySettings = false;
+		_isResetConfirmVisible = false;
+	}
+
+	private async Task OpenSettings()
+	{
+		await LoadSettings();
+
+		_isSettingsVisible = true;
+	}
+
+	private async Task SaveSettings()
+	{
+		string errorMessage = await ValidateSettings();
+
+		if (!string.IsNullOrWhiteSpace(errorMessage))
+		{
+			ShowPromptBox(errorMessage);
+
+			return;
+		}
+
+		await SettingsService.SetUsername(_username);
+		await SettingsService.SetTextSpeed(_textSpeed);
+		await SettingsService.SetHiddenModeToggle(_isHiddenMode);
+		await SettingsService.SetBackgroundAnimationToggle(_backgroundAnimationToggle);
+
+		_passphrase = string.Empty;
+		_isSettingsVisible = false;
+
+		if (_isInitialScreen)
+		{
+			_isInitialScreen = false;
+		}
+	}
+
+	private async Task<string> ValidateSettings()
+	{
+		string errorMessage = string.Empty;
+		ResetSettingsValidationFields();
+
+		if (string.IsNullOrWhiteSpace(_username))
+		{
+			errorMessage = "Username is empty.";
+			_isInvalidUsername = true;
+
+			return errorMessage;
+		}
+
+		if (string.IsNullOrWhiteSpace(_tempAPIKey))
+		{
+			errorMessage = "API Key is empty.";
+			_isInvalidApiKey = true;
+
+			return errorMessage;
+		}
+
+		// If user is changing or setting the API Key
+		if (!_tempAPIKey.Equals(_apiKey))
+		{
+			_tempAPIKey = _tempAPIKey.Trim();
+
+			// Test new API Key
+			try
+			{
+				bool isValid = await AIInteractionService.TestKey(_tempAPIKey);
+
+				if (!isValid)
+				{
+					errorMessage = "API Key is invalid.";
+					_isInvalidApiKey = true;
+
+					return errorMessage;
+				}
+			}
+			catch
+			{
+				errorMessage = $"API Key is invalid.";
+				_isInvalidApiKey = true;
+
+				return errorMessage;
+			}
+
+			_isInvalidApiKey = false;
+
+			if (string.IsNullOrWhiteSpace(_passphrase))
+			{
+				errorMessage = "Passphrase is empty.";
+				_isInvalidPassphrase = true;
+
+				return errorMessage;
+			}
+
+			// Encrypt new API Key
+			try
+			{
+				await SettingsService.EncryptAPIKey(_passphrase, _tempAPIKey);
+			}
+			catch (Exception ex)
+			{
+				errorMessage = $"Failed to encrypt API Key. {ex.Message}";
+				_isInvalidPassphrase = true;
+
+				return errorMessage;
+			}
+
+			_apiKey = _tempAPIKey;
+		}
+
+		if (_textSpeed > SettingsService.MaxTextSpeed)
+		{
+			_textSpeed = SettingsService.MaxTextSpeed;
+		}
+
+		if (_textSpeed < SettingsService.MinTextSpeed)
+		{
+			_textSpeed = SettingsService.MinTextSpeed;
+		}
+
+		ResetSettingsValidationFields();
+
+		return errorMessage;
+	}
+
+	private async Task CloseSettings()
+	{
+		await LoadSettings();
+
+		ResetSettingsValidationFields();
+
+		_passphrase = string.Empty;
+		_isSettingsVisible = false;
+	}
+
+	private async Task LoadSettings()
+	{
+		_username = await SettingsService.GetUsername();
+		_textSpeed = await SettingsService.GetTextSpeed();
+		_isHiddenMode = await SettingsService.GetHiddenModeToggle();
+		_backgroundAnimationToggle = await SettingsService.GetBackgroundAnimationToggle();
+		_tempAPIKey = _apiKey;
+	}
+
+	private void ResetSettingsValidationFields()
+	{
+		_isInvalidUsername = false;
+		_isInvalidPassphrase = false;
+		_isInvalidApiKey = false;
+
+		_showPassphrase = false;
+		_showAPIKey = false;
+	}
+	#endregion
+
+	#region UI Visibility Controls
+	private void ToggleInput()
+	{
+		_isInputVisible = !_isInputVisible;
+	}
+
+	private void ToggleHistory()
+	{
+		_isHistoryVisible = !_isHistoryVisible;
+	}
+
+	private async Task CloseOverlay()
+	{
+		_isHistoryVisible = false;
+		_isAboutBoxVisible = false;
+		_isResetConfirmVisible = false;
+		ClosePromptBox();
+		await CloseSettings();
+	}
+
+	private void ClosePromptBox()
+	{
+		_isPromptBoxVisible = false;
+	}
+
+	private void ShowPromptBox(string message)
+	{
+		_promptBoxMessage = message;
+		_isPromptBoxVisible = true;
+	}
+
+	private void ToggleAboutBoxVisibility()
+	{
+		_isAboutBoxVisible = !_isAboutBoxVisible;
+	}
+
+	private void ToggleKeyResetConfirmationVisibility()
+	{
+		_isResetConfirmVisible = !_isResetConfirmVisible;
+	}
+
+	private void TogglePassphraseVisibility()
+	{
+		_showPassphrase = !_showPassphrase;
+	}
+
+	private void ToggleAPIKeyVisibility()
+	{
+		_showAPIKey = !_showAPIKey;
+	}
+	#endregion
+
+	#region Send Logic
+	private async Task Send()
+	{
+		try
+		{
+			_chatStatus.APIKey = _apiKey;
+			_chatStatus.CurrentDateTime = DateTime.Now;
+
+			AIChatMessage newUserMessage = new AIChatMessage
+			{
+				Name = _username,
+				Message = _message.Trim()
+			};
+
+			_displayHistoryList.Add(new DisplayHistoryEntry
+			{
+				Name = _username,
+				Message = _message.Trim()
+			});
+
+			_message = string.Empty;
+			_response = string.Empty;
+			_isInputVisible = false;
+
+			_chatStatus.CurrentMessage = newUserMessage;
+
+			_isWaitingForResponse = true;
+
+			// Making sure Monika remembers what was the last conversation about if one exists
+			if (string.IsNullOrWhiteSpace(_chatStatus.LastConversationSummary))
+			{
+				(_chatStatus.LastConversationSummary, _loadedConversations) = await LongTermMemoryService.GetLatestConversationMemory(_username, _apiKey, _loadedConversations);
+				Console.WriteLine($"Loaded last conversation summary. {_chatStatus.LastConversationSummary}");
+			}
+			_chatStatus = await AIInteractionService.SendMessage(_chatStatus);
+
+			string newResponse = _chatStatus.CurrentMessage.Message;
+
+			// Checking if Monika is trying to remember something
+			string question = LongTermMemoryService.CheckIfRememberCommand(newResponse);
+			if (!string.IsNullOrEmpty(question))
+			{
+				_chatStatus.APIKey = _apiKey;
+				_chatStatus.CurrentDateTime = DateTime.Now;
+
+				Console.WriteLine($"Monika is trying to remember: {question}");
+				(_chatStatus, _loadedConversations) = await LongTermMemoryService.Remember(question, _chatStatus, _loadedConversations);
+			}
+
+			string responseMessage = _chatStatus.CurrentMessage.Message;
+			_currentResponseSentenceList = SentenceHelper.SplitParagraph(responseMessage);
+
+			if (_currentResponseSentenceList.Count > 1)
+			{
+				_isLastDisplaySentence = false;
+			}
+
+			_chatStatus.APIKey = _apiKey;
+			await LongTermMemoryService.SaveConversation(_sessionId, _chatStatus);
+
+			_isWaitingForResponse = false;
+			await ShowNextSentence();
+		}
+		catch (Exception ex)
+		{
+			_isWaitingForResponse = false;
+			ShowPromptBox(ex.Message);
+		}
+	}
+	#endregion
+
+	#region Response Message Display Handling
+	private async Task ShowNextSentence()
+	{
+		if (!_isLastDisplaySentence)
+		{
+			_isInputVisible = false;
+
+			if (_currentResponseSentenceList.Count < _currentDisplaySentence + 1)
+			{
+				_isLastDisplaySentence = true;
+				_currentDisplaySentence = 0;
+
+				return;
+			}
+
+			string currentResponseSentence = _currentResponseSentenceList[_currentDisplaySentence].Content;
+			char[] currentResponseSentenceArray = currentResponseSentence.ToCharArray();
+
+			string newSpriteName = _currentResponseSentenceList[_currentDisplaySentence].Sprite.ToLower().Trim();
+			await HandleSpriteChange(newSpriteName);
+
+			_isWriting = true;
+			_response = string.Empty;
+			foreach (char currentLetter in currentResponseSentenceArray)
+			{
+				int delayMilliseconds = SettingsService.MaxTextSpeed - _textSpeed; // Calculate how much to delay when typing response sentence based on text speed setting
+
+				// Make sure delay is not negative for some reason
+				if (delayMilliseconds < 0)
+				{
+					delayMilliseconds = 0;
+					_textSpeed = SettingsService.MaxTextSpeed;
+				}
+
+				await Task.Delay(delayMilliseconds); // Wait for some milliseconds
+				_response += currentLetter; // Add one character at a time
+				StateHasChanged(); // Instruct Blazor to re-render the component
+			}
+			_isWriting = false;
+
+			_displayHistoryList.Add(new DisplayHistoryEntry
+			{
+				Name = "Monika",
+				Message = _response
+			});
+
+			_currentDisplaySentence++;
+			if (_currentResponseSentenceList.Count < _currentDisplaySentence + 1)
+			{
+				_isLastDisplaySentence = true;
+				_currentDisplaySentence = 0;
+			}
+		}
+	}
+
+	private async Task HandleSpriteChange(string newSpriteName)
+	{
+		string newSpriteFilename = $"{newSpriteName}.webp";
+
+		if (!string.IsNullOrWhiteSpace(newSpriteName) && newSpriteFilename != _currentSpriteFilename)
+		{
+			bool fileExists = await CheckIfFileExists($"images/sprites/{newSpriteFilename}");
+
+			if (fileExists)
+			{
+				_currentSpriteFilename = newSpriteFilename;
+			}
+		}
+	}
+	#endregion
+
+	#region Background Image Management
+	private void HandleBackgroundChange()
+	{
+		TimeOnly currentTime = TimeOnly.FromDateTime(DateTime.Now);
+		TimeOfDay timeOfDay = TimesOfDay.GetCurrentTimeOfDay(currentTime);
+
+		switch (timeOfDay)
+		{
+			case TimeOfDay.Morning:
+				_currentBackgroundFilename = BACKGROUND_IMAGE_MORNING;
+				break;
+			case TimeOfDay.Day:
+				_currentBackgroundFilename = BACKGROUND_IMAGE_DAY;
+				break;
+			case TimeOfDay.Evening:
+				_currentBackgroundFilename = BACKGROUND_IMAGE_EVENING;
+				break;
+			case TimeOfDay.Night:
+				_currentBackgroundFilename = BACKGROUND_IMAGE_NIGHT;
+				break;
+			default:
+				_currentBackgroundFilename = BACKGROUND_IMAGE_DAY;
+				break;
+		}
+	}
+	#endregion
+
+	#region Miscellaneous Utilities
+	private async Task<bool> CheckIfFileExists(string url)
+	{
+		try
+		{
+			// Attempt to get the file. If the file exists, this will succeed.
+			var response = await Http.GetAsync(url);
+
+			return response.IsSuccessStatusCode;
+		}
+		catch (HttpRequestException)
+		{
+			// If there's a network or server error, assume the file does not exist.
+			return false;
+		}
+	}
+
+	private async Task CheckForEnterToSend(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter")
+		{
+			await Send();
+		}
+	}
+
+	private async Task CheckForEnterToShowNextSentence(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter")
+		{
+			await ShowNextSentence();
+		}
+	}
+
+	private bool ShouldShowSendButton() =>
+		!ShouldShowNextArrow() && _isInputVisible && !string.IsNullOrWhiteSpace(_message) && !_isHistoryVisible && !_isSettingsVisible && !_isAboutBoxVisible && !_isPromptBoxVisible;
+
+
+	private bool ShouldShowNextArrow() =>
+		!_isLastDisplaySentence && !_isWriting && !_isHistoryVisible && !_isSettingsVisible && !_isAboutBoxVisible && !_isPromptBoxVisible;
+
+	private async Task HandleChatBoxKeyPress(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter")
+		{
+			if (ShouldShowSendButton())
+			{
+				// If the user is trying to make a new line, they shouldn't accidentally send the message
+				if (!e.ShiftKey)
+				{
+					await Send();
+				}
+			}
+			else if (ShouldShowNextArrow())
+			{
+				await ShowNextSentence();
+			}
+		}
+
+		if (e.Key == "Tab")
+		{
+			_isInputVisible = !_isInputVisible;
+		}
+	}
+
+	private async Task HandleInitialScreenKeyPress(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter")
+		{
+			if (_hasKeySettings)
+			{
+				await ValidatePassphrase();
+			}
+			else
+			{
+				await SaveSettings();
+			}
+		}
+	}
+	#endregion
+}
