@@ -6,6 +6,13 @@ using MonikaChat.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add JSON file configuration (default behavior)
+builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+					 .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true);
+
+// Add environment variables
+builder.Configuration.AddEnvironmentVariables();
+
 builder.Services.Configure<OpenAIOptions>(
 	builder.Configuration.GetSection(OpenAIOptions.Name));
 builder.Services.Configure<CryptographyOptions>(
