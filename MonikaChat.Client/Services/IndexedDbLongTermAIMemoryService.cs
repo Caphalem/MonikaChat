@@ -155,7 +155,7 @@ namespace MonikaChat.Client.Services
 			latestConversationMemory = conversationMemoryDictionary.OrderByDescending(c => c.Key).FirstOrDefault().Value;
 
 			// If the latest memory was not found then 'latestConversationMemory' will not be null but rather default so need to check the sessionId
-			if (string.IsNullOrWhiteSpace(latestConversationMemory.SessionId))
+			if (string.IsNullOrWhiteSpace(latestConversationMemory?.SessionId))
 			{
 				return (result, loadedConversationList);
 			}
@@ -175,15 +175,22 @@ namespace MonikaChat.Client.Services
 		public async Task ClearMemory() =>
 			await _indexedDbManager.ClearStore((await GetStore()).Name);
 
+		public async Task EnsureDb()
+		{
+			StoreSchema? store = _indexedDbManager.Stores.FirstOrDefault(s => string.Equals(s?.Name, StoreName));
+
+			if (store == null)
+			{
+				await _indexedDbManager.AddNewStore(StoreSchema);
+				store = _indexedDbManager.Stores.FirstOrDefault(s => string.Equals(s?.Name, StoreName));
+			}
+		}
+
 		private async Task<StoreSchema> GetStore()
 		{
-			StoreSchema? store = _indexedDbManager.Stores.FirstOrDefault(s => string.Equals(s.Name, StoreName));
+			await EnsureDb();
 
-            if (store == null)
-            {
-				await _indexedDbManager.AddNewStore(StoreSchema);
-				store = _indexedDbManager.Stores.First(s => string.Equals(s.Name, StoreName));
-			}
+			StoreSchema store = _indexedDbManager.Stores.First(s => string.Equals(s.Name, StoreName));
 
 			return store;
 		}

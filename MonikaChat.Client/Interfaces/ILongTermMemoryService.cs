@@ -16,5 +16,7 @@ namespace MonikaChat.Client.Interfaces
 		Task<(string, List<ConversationMemory>)> GetLatestConversationMemory(string username, string apiKey, List<ConversationMemory> loadedConversationList);
 
 		Task ClearMemory();
+
+		Task EnsureDb();
 	}
 }

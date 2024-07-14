@@ -266,6 +266,7 @@ else
 
 	protected override async Task OnInitializedAsync()
 	{
+		await LongTermMemoryService.EnsureDb();
 		await LoadSettings();
 		HandleBackgroundChange();
 

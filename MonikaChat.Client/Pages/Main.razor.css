@@ -211,6 +211,11 @@ body, html {
         white-space: pre-wrap;
     }
 
+        .chat-box textarea::placeholder {
+            color: #ffffff;
+            opacity: 0.5;
+        }
+
 .buttons {
     position: absolute;
     bottom: 0; /* Align buttons at the bottom */
