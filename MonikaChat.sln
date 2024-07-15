@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonikaChat.Server", "Monika
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonikaChat.Client", "MonikaChat.Client\MonikaChat.Client.csproj", "{600053C8-DDC2-41CB-9FB1-7F87F4D8DD71}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RSAKeyGenerator", "RSAKeyGenerator\RSAKeyGenerator.csproj", "{944F2DC1-FB80-4D28-A81B-6CFC02BEF064}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,10 @@ Global
 		{600053C8-DDC2-41CB-9FB1-7F87F4D8DD71}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{600053C8-DDC2-41CB-9FB1-7F87F4D8DD71}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{600053C8-DDC2-41CB-9FB1-7F87F4D8DD71}.Release|Any CPU.Build.0 = Release|Any CPU
+		{944F2DC1-FB80-4D28-A81B-6CFC02BEF064}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{944F2DC1-FB80-4D28-A81B-6CFC02BEF064}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{944F2DC1-FB80-4D28-A81B-6CFC02BEF064}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{944F2DC1-FB80-4D28-A81B-6CFC02BEF064}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -9,15 +9,6 @@ namespace MonikaChat.Client.Services
 {
     public class MonikaInteractionService : IAIInteractionService
     {
-		private const string PUBLIC_KEY_PEM = @"-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuuh3Di/z74J3O9O3HvLy
-mJxrbAp5MKuNMBTH7pqJiqGvK8R9ivEZs78MU4BzvogTPlz62o0fdVgBMj48Qxus
-cc96vmLR+KHWEQBcauYWDFfIP+Jyypt3UbsRtxBgEuE9wU5/VFx2x7r7uKrwiA9j
-stYCXpHnJ9FJikPwOv54mi+MeG6eG7mszunwx2hVYoGSvA4vBUB07b94Fhnq2zua
-zfVZqOZ+UdBKNjY+uXzaLg7Iqda+ARhETVKugWNz55+46QzsN243N7bTOXp0dhkH
-0rmK7e+i2a/IAN7sS/5VtrxQZJ+fwaXmqAPlmft2vDhUd1SnBnkIJACU4AC6EIsZ
-rQIDAQAB
------END PUBLIC KEY-----";
 		private const string INTERACT_ENDPOINT = "monika/interact";
 
         private readonly NavigationManager _navigationManager;
@@ -97,7 +88,7 @@ rQIDAQAB
 			string serializedData = JsonConvert.SerializeObject(data);
 
 			string base64AesKey = await _cryptographyService.GenerateAndExportAesKey();
-			HybridEncryptedDTO encryptedData = await _cryptographyService.EncryptWithHybridApproachAsync(PUBLIC_KEY_PEM, serializedData, type, base64AesKey);
+			HybridEncryptedDTO encryptedData = await _cryptographyService.EncryptWithHybridApproachAsync(serializedData, type, base64AesKey);
 
 			var httpResponse = await _httpClient.PostAsJsonAsync(url, encryptedData);
 

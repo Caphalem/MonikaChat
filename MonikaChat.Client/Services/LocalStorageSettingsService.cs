@@ -32,7 +32,7 @@ namespace MonikaChat.Client.Services
         // Since I can't use Singletons in WebAssembly, I have these crazy getters and setters
 
 		public async Task<string> GetUsername() =>
-			await _localStorage.GetItemAsync<string>(USERNAME_SETTING_NAME) ?? string.Empty;
+			await GetValueOrDefault(USERNAME_SETTING_NAME, string.Empty);
 
 		public async Task SetUsername(string username)
 		{
@@ -45,7 +45,7 @@ namespace MonikaChat.Client.Services
 		}
 
 		public async Task<string> GetEncryptedAPIKey() =>
-			await _localStorage.GetItemAsync<string>(API_KEY_SETTING_NAME) ?? string.Empty;
+			await GetValueOrDefault(API_KEY_SETTING_NAME, string.Empty);
 
 		public async Task SetEncryptedAPIKey(string encryptedAPIKey)
 		{
@@ -53,7 +53,7 @@ namespace MonikaChat.Client.Services
 		}
 
 		public async Task<int> GetTextSpeed() =>
-			await _localStorage.GetItemAsync<int>(TEXT_SPEED_SETTING_NAME);
+			await GetValueOrDefault(TEXT_SPEED_SETTING_NAME, DEFAULT_TEXT_SPEED);
 
 		public async Task SetTextSpeed(int textSpeed)
 		{
@@ -62,7 +62,7 @@ namespace MonikaChat.Client.Services
 		}
 
 		public async Task<bool> GetBackgroundAnimationToggle() =>
-			await _localStorage.GetItemAsync<bool>(ANIMATION_SETTING_NAME);
+			await GetValueOrDefault(ANIMATION_SETTING_NAME, true);
 
 		public async Task SetBackgroundAnimationToggle(bool backgroundAnimationToggle)
 		{
@@ -70,7 +70,7 @@ namespace MonikaChat.Client.Services
 		}
 
 		public async Task<bool> GetHiddenModeToggle() =>
-			await _localStorage.GetItemAsync<bool>(HIDDEN_MODE_SETTING_NAME);
+			await GetValueOrDefault(HIDDEN_MODE_SETTING_NAME, false);
 
 		public async Task SetHiddenModeToggle(bool hiddenModeToggle)
 		{
@@ -113,6 +113,25 @@ namespace MonikaChat.Client.Services
 
             return encryptedAPIKey;
         }
+
+		private async Task<T> GetValueOrDefault<T>(string key, T defaultValue)
+		{
+			bool valueExists = await _localStorage.ContainKeyAsync(key);
+			if (!valueExists)
+			{
+				return defaultValue;
+			}
+			else
+			{
+				T? value = await _localStorage.GetItemAsync<T>(key);
+				if (value == null)
+				{
+					return defaultValue;
+				}
+
+				return value;
+			}
+		}
 
         private int ValidateTextSpeed(int textSpeed)
         {
