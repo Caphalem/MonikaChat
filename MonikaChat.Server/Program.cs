@@ -28,8 +28,8 @@ builder.Services.AddScoped<ILLMService, OpenAIService>();
 builder.Services.AddHttpClient<ILLMService, OpenAIService>();
 builder.Services.AddScoped<CryptographyService>();
 builder.Services.AddScoped<MonikaService>();
-
 builder.Services.AddHealthChecks();
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -59,13 +59,13 @@ app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
 
-if (!string.IsNullOrWhiteSpace(corsDomain))
-{
-	app.UseCors(policy =>
-		policy.WithOrigins(corsDomain)
-			  .AllowAnyMethod()
-			  .AllowAnyHeader()
-			  .AllowCredentials());
-}
+//if (!string.IsNullOrWhiteSpace(corsDomain))
+//{
+//	app.UseCors(policy =>
+//		policy.WithOrigins(corsDomain)
+//			  .AllowAnyMethod()
+//			  .AllowAnyHeader()
+//			  .AllowCredentials());
+//}
 
 app.Run();
