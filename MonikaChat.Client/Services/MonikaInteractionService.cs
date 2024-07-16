@@ -84,7 +84,7 @@ namespace MonikaChat.Client.Services
 
 		private async Task<T?> SendInteraction<T>(object data, string type)
 		{
-			string url = new Uri(new Uri(_navigationManager.BaseUri), INTERACT_ENDPOINT).ToString();
+			string url = new Uri(_httpClient.BaseAddress, INTERACT_ENDPOINT).ToString();
 			string serializedData = JsonConvert.SerializeObject(data);
 
 			string base64AesKey = await _cryptographyService.GenerateAndExportAesKey();

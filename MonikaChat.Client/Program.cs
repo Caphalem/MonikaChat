@@ -20,7 +20,10 @@ builder.Services.AddIndexedDB(dbConfig =>
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+string baseAddress = builder.HostEnvironment.BaseAddress;
+
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(baseAddress) });
 builder.Services.AddScoped<CryptographyService>();
 builder.Services.AddScoped<ISettingsService, LocalStorageSettingsService>();
 builder.Services.AddScoped<IAIInteractionService, MonikaInteractionService>();

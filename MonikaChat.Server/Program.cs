@@ -13,6 +13,9 @@ builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnCh
 // Add environment variables
 builder.Configuration.AddEnvironmentVariables();
 
+// Configure CORS policy
+string corsDomain = builder.Configuration["CORS_POLICY_DOMAIN"] ?? string.Empty;
+Console.WriteLine($"CORS variable: {corsDomain}");
 builder.Services.Configure<OpenAIOptions>(
 	builder.Configuration.GetSection(OpenAIOptions.Name));
 builder.Services.Configure<CryptographyOptions>(
@@ -55,5 +58,14 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
 app.MapFallbackToFile("index.html");
+
+if (!string.IsNullOrWhiteSpace(corsDomain))
+{
+	app.UseCors(policy =>
+		policy.WithOrigins(corsDomain)
+			  .AllowAnyMethod()
+			  .AllowAnyHeader()
+			  .AllowCredentials());
+}
 
 app.Run();
