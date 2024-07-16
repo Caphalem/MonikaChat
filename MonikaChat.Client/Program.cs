@@ -23,6 +23,12 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 string baseAddress = builder.HostEnvironment.BaseAddress;
 
+// Haven't figured out a better way how to do this yet :<
+if (baseAddress.Contains("monika.chat"))
+{
+	baseAddress = "https://api.monika.chat/";
+}
+
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(baseAddress) });
 builder.Services.AddScoped<CryptographyService>();
 builder.Services.AddScoped<ISettingsService, LocalStorageSettingsService>();
