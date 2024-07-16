@@ -104,6 +104,13 @@ body, html {
     }
 }
 
+@keyframes l3Span {
+    to {
+        transform: scale(1.8);
+        opacity: 0
+    }
+}
+
 .background {
     position: absolute;
     top: 0;
@@ -504,10 +511,19 @@ i.far.fa-eye {
         text-shadow: -1px 1px 5px rgb(177, 244, 173), 1px 1px 5px rgb(177, 244, 173), 1px -1px 5px rgb(177, 244, 173), -1px -1px 5px rgb(177, 244, 173);
     }
 
-input.checkbox-setting {
-    width: 20px;
-    height: 20px;
-}
+    .box-span.testing-key-loader {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+        .box-span.testing-key-loader:hover {
+            text-shadow: -1px 1px 5px rgb(117, 184, 113), 1px 1px 5px rgb(117, 184, 113), 1px -1px 5px rgb(117, 184, 113), -1px -1px 5px rgb(117, 184, 113);
+        }
+
+    input.checkbox-setting {
+        width: 20px;
+        height: 20px;
+    }
 
 .note {
     font-family: "DejaVu Sans", sans-serif;

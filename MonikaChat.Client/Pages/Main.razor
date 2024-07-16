@@ -66,7 +66,15 @@
 			</div>
 		</div>
 		<div class="box-buttons">
-			<span class="box-span" @onclick="_hasKeySettings ? ValidatePassphrase : SaveSettings">OK</span>
+			@if (_isTestingApiKey)
+			{
+				<span class="box-span testing-key-loader">OK</span>
+			}
+			else
+			{
+				<span class="box-span" @onclick="_hasKeySettings ? ValidatePassphrase : SaveSettings">OK</span>
+			}
+
 			@if (_hasKeySettings)
 			{
 				<span class="box-span" @onclick="ToggleKeyResetConfirmationVisibility">Reset Key</span>
@@ -148,7 +156,14 @@ else
 			</div>
 		</div>
 		<div class="box-buttons">
-			<span class="box-span" @onclick="SaveSettings">Save</span>
+			@if (_isTestingApiKey)
+			{
+				<span class="box-span testing-key-loader">Save</span>
+			}
+			else
+			{
+				<span class="box-span" @onclick="SaveSettings">Save</span>
+			}
 			<span class="box-span" @onclick="CloseSettings">Cancel</span>
 		</div>
 	</div>
@@ -231,6 +246,7 @@ else
 	private bool _isInvalidUsername = false; // Used for initial screen to display if username is invalid
 	private bool _isInvalidApiKey = false; // Used for initial screen to display if API Key is invalid
 	private bool _isInvalidPassphrase = false; // Used for initial screen to display if passphrase is invalid
+	private bool _isTestingApiKey = false; // Used to disable the OK button while the API key is being tested
 
 	// Current Status
 	private AIChatInteraction _chatStatus = new AIChatInteraction();
@@ -407,7 +423,9 @@ else
 			// Test new API Key
 			try
 			{
+				_isTestingApiKey = true;
 				bool isValid = await AIInteractionService.TestKey(_tempAPIKey);
+				_isTestingApiKey = false;
 
 				if (!isValid)
 				{
@@ -420,6 +438,7 @@ else
 			catch
 			{
 				errorMessage = $"API Key is invalid.";
+				_isTestingApiKey = false;
 				_isInvalidApiKey = true;
 
 				return errorMessage;

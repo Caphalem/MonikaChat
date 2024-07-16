@@ -15,7 +15,7 @@ builder.Configuration.AddEnvironmentVariables();
 
 // Configure CORS policy
 string corsDomain = builder.Configuration["CORS_POLICY_DOMAIN"] ?? string.Empty;
-Console.WriteLine($"CORS variable: {corsDomain}");
+
 builder.Services.Configure<OpenAIOptions>(
 	builder.Configuration.GetSection(OpenAIOptions.Name));
 builder.Services.Configure<CryptographyOptions>(
