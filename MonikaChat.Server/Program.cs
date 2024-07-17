@@ -4,6 +4,8 @@ using MonikaChat.Server.Interfaces;
 using MonikaChat.Server.Models.Cryptography;
 using MonikaChat.Server.Models.OpenAI;
 using MonikaChat.Server.Services;
+using System.Net;
+using System.Net.Sockets;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +90,10 @@ var rules =
 	FirewallRulesEngine
 		.DenyAllAccess()
 		.ExceptFromCloudflare()
+		.ExceptWhen(ctx => Dns.GetHostAddresses(Dns.GetHostName())
+			.Where(ip => ip.AddressFamily == AddressFamily.InterNetwork || ip.AddressFamily == AddressFamily.InterNetworkV6)
+			.Select(ip => ip.ToString())
+			.Contains(ctx.Connection.RemoteIpAddress?.ToString()))
 		.ExceptFromLocalhost();
 
 app.UseFirewall(rules);
