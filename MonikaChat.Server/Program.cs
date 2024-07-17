@@ -89,12 +89,16 @@ app.UseAuthorization();
 var rules =
 	FirewallRulesEngine
 		.DenyAllAccess()
-		.ExceptFromCloudflare()
-		.ExceptWhen(ctx => Dns.GetHostAddresses(Dns.GetHostName())
-			.Where(ip => ip.AddressFamily == AddressFamily.InterNetwork || ip.AddressFamily == AddressFamily.InterNetworkV6)
-			.Select(ip => ip.ToString())
-			.Contains(ctx.Connection.RemoteIpAddress?.ToString()))
-		.ExceptFromLocalhost();
+		//.ExceptFromCloudflare()
+		.ExceptWhen(ctx =>
+		{
+			Console.WriteLine($"Test: {ctx.Connection?.LocalIpAddress?.ToString()}");
+
+			return false;
+		});
+		//.ExceptFromLocalhost();
+
+
 
 app.UseFirewall(rules);
 
