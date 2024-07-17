@@ -57,7 +57,7 @@
 				</div>
 				<div>
 					<label for="apiKey">API Key:</label>
-					<input type="@(_showAPIKey ? "text" : "password")" class="text-setting @(_isInvalidApiKey ? "invalid" : "")" id="apiKey" @bind="_tempAPIKey" @bind:event="oninput" /><i class="far fa-eye @(_showAPIKey ? "fa-eye-slash" : "")" @onclick="ToggleAPIKeyVisibility"></i>
+					<input type="@(_showAPIKey ? "text" : "password")" class="text-setting @(_isInvalidApiKey ? "invalid" : "")" id="apiKey" @bind="_tempAPIKey" @bind:event="oninput" placeholder="OpenAI API Key" /><i class="far fa-eye @(_showAPIKey ? "fa-eye-slash" : "")" @onclick="ToggleAPIKeyVisibility"></i>
 				</div>
 			}
 			<div>
@@ -138,7 +138,7 @@ else
 			</div>
 			<div>
 				<label for="apiKey">API Key:</label>
-				<input type="@(_showAPIKey ? "text" : "password")" class="text-setting secret @(_isInvalidApiKey ? "invalid" : "")" id="apiKey" @bind="_tempAPIKey" /><i class="far fa-eye @(_showAPIKey ? "fa-eye-slash" : "")" @onclick="ToggleAPIKeyVisibility"></i>
+				<input type="@(_showAPIKey ? "text" : "password")" class="text-setting secret @(_isInvalidApiKey ? "invalid" : "")" id="apiKey" @bind="_tempAPIKey" placeholder="OpenAI API Key" /><i class="far fa-eye @(_showAPIKey ? "fa-eye-slash" : "")" @onclick="ToggleAPIKeyVisibility"></i>
 			</div>
 			<div>
 				<label for="passphrase">Passphrase:</label>

@@ -30,8 +30,17 @@ builder.Services.AddScoped<CryptographyService>();
 builder.Services.AddScoped<MonikaService>();
 builder.Services.AddHealthChecks();
 
-builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
+// Making it run in headless mode while not in Development environment
+if (builder.Environment.IsDevelopment())
+{
+	builder.Services.AddControllersWithViews();
+	builder.Services.AddRazorPages();
+}
+else
+{
+	builder.Services.AddControllers();
+}
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -50,15 +59,19 @@ app.MapHealthChecks("/healthz");
 
 app.UseHttpsRedirection();
 
-app.UseBlazorFrameworkFiles();
-app.UseStaticFiles();
+// Making it run in headless mode while not in Development environment
+if (app.Environment.IsDevelopment())
+{
+	app.UseBlazorFrameworkFiles();
+	app.UseStaticFiles();
+
+	app.MapRazorPages();
+	app.MapFallbackToFile("index.html");
+}
+
+app.MapControllers();
 
 app.UseAuthorization();
-
-app.MapRazorPages();
-app.MapControllers();
-app.MapFallbackToFile("index.html");
-
 //if (!string.IsNullOrWhiteSpace(corsDomain))
 //{
 //	app.UseCors(policy =>
