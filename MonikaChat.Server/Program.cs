@@ -1,3 +1,4 @@
+using Firewall;
 using MonikaChat.Server.Formatters;
 using MonikaChat.Server.Interfaces;
 using MonikaChat.Server.Models.Cryptography;
@@ -80,5 +81,15 @@ app.UseAuthorization();
 //			  .AllowAnyHeader()
 //			  .AllowCredentials());
 //}
+
+// DigitalOcean does not have a Firewall feature on App Platform
+// So I'm bringing my own
+var rules =
+	FirewallRulesEngine
+		.DenyAllAccess()
+		.ExceptFromCloudflare()
+		.ExceptFromLocalhost();
+
+app.UseFirewall(rules);
 
 app.Run();
