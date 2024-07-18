@@ -87,13 +87,13 @@ app.UseAuthorization();
 
 // DigitalOcean does not have a Firewall feature on App Platform
 // So I'm bringing my own
-app.UseForwardedHeaders(
-		new ForwardedHeadersOptions
-		{
-			ForwardedHeaders = ForwardedHeaders.XForwardedFor,
-			ForwardLimit = 1
-		}
-	);
+//app.UseForwardedHeaders(
+//		new ForwardedHeadersOptions
+//		{
+//			ForwardedHeaders = ForwardedHeaders.XForwardedFor,
+//			ForwardLimit = 1
+//		}
+//	);
 
 Func<HttpContext, bool> isSameNetwork = (context) =>
 {
