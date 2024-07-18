@@ -1,4 +1,5 @@
 using Firewall;
+using Microsoft.AspNetCore.HttpOverrides;
 using MonikaChat.Server.Formatters;
 using MonikaChat.Server.Interfaces;
 using MonikaChat.Server.Models.Cryptography;
@@ -86,18 +87,50 @@ app.UseAuthorization();
 
 // DigitalOcean does not have a Firewall feature on App Platform
 // So I'm bringing my own
+app.UseForwardedHeaders(
+		new ForwardedHeadersOptions
+		{
+			ForwardedHeaders = ForwardedHeaders.XForwardedFor,
+			ForwardLimit = 1
+		}
+	);
+
+Func<HttpContext, bool> isSameNetwork = (context) =>
+{
+	string? localhostIp = context.Connection?.LocalIpAddress?.ToString();
+	IPAddress? remoteIp = context.Connection?.RemoteIpAddress;
+
+	if (string.IsNullOrWhiteSpace(localhostIp))
+	{
+		Console.WriteLine("Local network rule: localhost ip is null.");
+
+		return false;
+	}
+
+	if (remoteIp == null)
+	{
+		Console.WriteLine("Local network rule: remote ip is null.");
+
+		return false;
+	}
+
+	localhostIp = localhostIp.Replace("::ffff:", string.Empty); // Localhost IP from DigitalOcean has this part
+	CIDRNotation loccalNetworkNotation = CIDRNotation.Parse($"{localhostIp}/24");
+
+	if (loccalNetworkNotation.Contains(remoteIp))
+	{
+		return true;
+	}
+
+	return false;
+};
+
 var rules =
 	FirewallRulesEngine
 		.DenyAllAccess()
-		//.ExceptFromCloudflare()
-		.ExceptWhen(ctx =>
-		{
-			Console.WriteLine($"Test: {ctx.Connection?.LocalIpAddress?.ToString()}");
-
-			return false;
-		});
-		//.ExceptFromLocalhost();
-
+		.ExceptFromCloudflare()
+		.ExceptWhen(isSameNetwork)
+		.ExceptFromLocalhost();
 
 
 app.UseFirewall(rules);
