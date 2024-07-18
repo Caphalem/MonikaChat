@@ -1,10 +1,8 @@
-using Firewall;
 using MonikaChat.Server.Formatters;
 using MonikaChat.Server.Interfaces;
 using MonikaChat.Server.Models.Cryptography;
 using MonikaChat.Server.Models.OpenAI;
 using MonikaChat.Server.Services;
-using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,9 +12,6 @@ builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnCh
 
 // Add environment variables
 builder.Configuration.AddEnvironmentVariables();
-
-// Configure CORS policy
-string corsDomain = builder.Configuration["CORS_POLICY_DOMAIN"] ?? string.Empty;
 
 builder.Services.Configure<OpenAIOptions>(
 	builder.Configuration.GetSection(OpenAIOptions.Name));
@@ -63,47 +58,5 @@ app.MapFallbackToFile("index.html");
 app.MapControllers();
 
 app.UseAuthorization();
-
-// DigitalOcean does not have a Firewall feature on App Platform
-// So I'm bringing my own
-
-Func<HttpContext, bool> isSameNetwork = (context) =>
-{
-	string? localhostIp = context.Connection?.LocalIpAddress?.ToString();
-	IPAddress? remoteIp = context.Connection?.RemoteIpAddress;
-
-	if (string.IsNullOrWhiteSpace(localhostIp))
-	{
-		Console.WriteLine("Local network rule: localhost ip is null.");
-
-		return false;
-	}
-
-	if (remoteIp == null)
-	{
-		Console.WriteLine("Local network rule: remote ip is null.");
-
-		return false;
-	}
-
-	localhostIp = localhostIp.Replace("::ffff:", string.Empty); // Localhost IP from DigitalOcean has this part
-	CIDRNotation loccalNetworkNotation = CIDRNotation.Parse($"{localhostIp}/24");
-
-	if (loccalNetworkNotation.Contains(remoteIp))
-	{
-		return true;
-	}
-
-	return false;
-};
-
-var rules =
-	FirewallRulesEngine
-		.DenyAllAccess()
-		.ExceptWhen(isSameNetwork)
-		.ExceptFromLocalhost();
-
-
-app.UseFirewall(rules);
 
 app.Run();
