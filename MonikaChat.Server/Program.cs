@@ -1,12 +1,10 @@
 using Firewall;
-using Microsoft.AspNetCore.HttpOverrides;
 using MonikaChat.Server.Formatters;
 using MonikaChat.Server.Interfaces;
 using MonikaChat.Server.Models.Cryptography;
 using MonikaChat.Server.Models.OpenAI;
 using MonikaChat.Server.Services;
 using System.Net;
-using System.Net.Sockets;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,16 +32,9 @@ builder.Services.AddScoped<CryptographyService>();
 builder.Services.AddScoped<MonikaService>();
 builder.Services.AddHealthChecks();
 
-// Making it run in headless mode while not in Development environment
-if (builder.Environment.IsDevelopment())
-{
-	builder.Services.AddControllersWithViews();
-	builder.Services.AddRazorPages();
-}
-else
-{
-	builder.Services.AddControllers();
-}
+
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -63,37 +54,18 @@ app.MapHealthChecks("/healthz");
 
 app.UseHttpsRedirection();
 
-// Making it run in headless mode while not in Development environment
-if (app.Environment.IsDevelopment())
-{
-	app.UseBlazorFrameworkFiles();
-	app.UseStaticFiles();
+app.UseBlazorFrameworkFiles();
+app.UseStaticFiles();
 
-	app.MapRazorPages();
-	app.MapFallbackToFile("index.html");
-}
+app.MapRazorPages();
+app.MapFallbackToFile("index.html");
 
 app.MapControllers();
 
 app.UseAuthorization();
-//if (!string.IsNullOrWhiteSpace(corsDomain))
-//{
-//	app.UseCors(policy =>
-//		policy.WithOrigins(corsDomain)
-//			  .AllowAnyMethod()
-//			  .AllowAnyHeader()
-//			  .AllowCredentials());
-//}
 
 // DigitalOcean does not have a Firewall feature on App Platform
 // So I'm bringing my own
-//app.UseForwardedHeaders(
-//		new ForwardedHeadersOptions
-//		{
-//			ForwardedHeaders = ForwardedHeaders.XForwardedFor,
-//			ForwardLimit = 1
-//		}
-//	);
 
 Func<HttpContext, bool> isSameNetwork = (context) =>
 {
@@ -128,7 +100,6 @@ Func<HttpContext, bool> isSameNetwork = (context) =>
 var rules =
 	FirewallRulesEngine
 		.DenyAllAccess()
-		.ExceptFromCloudflare()
 		.ExceptWhen(isSameNetwork)
 		.ExceptFromLocalhost();
 
