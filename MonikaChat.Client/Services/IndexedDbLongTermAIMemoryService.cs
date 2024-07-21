@@ -41,6 +41,9 @@ namespace MonikaChat.Client.Services
 		public async Task<ConversationMemory?> LoadConversation(string sessionId) =>
 			await _indexedDbManager.GetRecordById<string, ConversationMemory>((await GetStore()).Name, sessionId);
 
+		public async Task<List<ConversationMemory>> LoadAllConversations() =>
+			await _indexedDbManager.GetRecords<ConversationMemory>((await GetStore()).Name);
+
 		public async Task SaveConversation(string sessionId, AIChatInteraction chatStatus)
 		{
 			string history = string.Join(" \n", chatStatus.History.Where(m => m.Role != OpenAIRoleNames.SYSTEM_ROLE).Select(m => $"{m.Name}: {m.Message}"));
@@ -139,7 +142,7 @@ namespace MonikaChat.Client.Services
 			// In case the conversations haven't been loaded yet
 			if (loadedConversationList.Count == 0)
 			{
-				loadedConversationList = await _indexedDbManager.GetRecords<ConversationMemory>((await GetStore()).Name);
+				loadedConversationList = await LoadAllConversations();
 			}
 
 			Dictionary<DateTime, ConversationMemory> conversationMemoryDictionary = new Dictionary<DateTime, ConversationMemory>();
@@ -173,7 +176,7 @@ namespace MonikaChat.Client.Services
 		}
 
 		public async Task ClearMemory() =>
-			await _indexedDbManager.ClearStore((await GetStore()).Name);
+			await _indexedDbManager.ClearStore(StoreName);
 
 		public async Task EnsureDb()
 		{

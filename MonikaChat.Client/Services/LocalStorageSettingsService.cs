@@ -8,7 +8,7 @@ namespace MonikaChat.Client.Services
         private const int MIN_TEXT_SPEED = 0;
         private const int MAX_TEXT_SPEED = 10;
         private const int DEFAULT_TEXT_SPEED = 5;
-        private const string USERNAME_SETTING_NAME = "username";
+		private const string USERNAME_SETTING_NAME = "username";
         private const string API_KEY_SETTING_NAME = "apiKey";
         private const string TEXT_SPEED_SETTING_NAME = "textSpeed";
         private const string ANIMATION_SETTING_NAME = "backgroundAnimationToggle";
@@ -29,7 +29,7 @@ namespace MonikaChat.Client.Services
 
 		public int DefaultTextSpeed => DEFAULT_TEXT_SPEED;
 
-        // Since I can't use Singletons in WebAssembly, I have these crazy getters and setters
+		// Since I can't use Singletons in WebAssembly, I have these crazy getters and setters
 
 		public async Task<string> GetUsername() =>
 			await GetValueOrDefault(USERNAME_SETTING_NAME, string.Empty);
@@ -64,18 +64,15 @@ namespace MonikaChat.Client.Services
 		public async Task<bool> GetBackgroundAnimationToggle() =>
 			await GetValueOrDefault(ANIMATION_SETTING_NAME, true);
 
-		public async Task SetBackgroundAnimationToggle(bool backgroundAnimationToggle)
-		{
+		public async Task SetBackgroundAnimationToggle(bool backgroundAnimationToggle) =>
 			await _localStorage.SetItemAsync(ANIMATION_SETTING_NAME, backgroundAnimationToggle);
-		}
+		
 
 		public async Task<bool> GetHiddenModeToggle() =>
 			await GetValueOrDefault(HIDDEN_MODE_SETTING_NAME, false);
 
-		public async Task SetHiddenModeToggle(bool hiddenModeToggle)
-		{
+		public async Task SetHiddenModeToggle(bool hiddenModeToggle) =>
 			await _localStorage.SetItemAsync(HIDDEN_MODE_SETTING_NAME, hiddenModeToggle);
-		}
 
 		public async Task<string> DecryptAPIKey(string passphrase)
         {
