@@ -99,7 +99,8 @@ else
 		<p>
 			@if (_isInputVisible)
 			{
-				<textarea @ref="_inputForFocus" @bind-value="_message" @bind-value:event="oninput" placeholder="Type a message..." rows="2" />
+				@* @onkeydown:preventDefault="_firstMainScreenLoad" is used here to prevent the "Enter" keydown event from carrying over from the initial screen to the Input which then creates a newline unintentionally and hides the placeholder text.*@
+				<textarea @ref="_inputForFocus" @bind-value="_message" @bind-value:event="oninput" @onkeydown:preventDefault="_firstMainScreenLoad" placeholder="Type a message..." rows="2" />
 			}
 			else
 			{
@@ -296,9 +297,16 @@ else
 
 			if (_firstMainScreenLoad)
 			{
-				// This is a bit jank but it works preventing Tab from unfocusing so that it's possible to switch between input and response views using Tab
+				// Display the "About" box if this is the first time the user is chatting with Monika
+				_loadedConversations = await LongTermMemoryService.LoadAllConversations();
+				_isAboutBoxVisible = _loadedConversations.Count <= 0;
+
+				// This is a bit jank but it works preventing Tab from unfocusing so that it's possible to switch between input and response views using "Tab"
+				// Also, stops "Enter" from creating newlines if "Shift" is not also pressed
 				await JSRuntime.InvokeVoidAsync("preventKeyDefault", CHAT_BOX_ELEMENT_ID);
 				_firstMainScreenLoad = false;
+
+				StateHasChanged();
 			}
 
 			// Using this to set the focus automatically on the input text once it becomes available in the UI
@@ -306,7 +314,7 @@ else
 			{
 				await _inputForFocus.FocusAsync();
 			}
-			else if (!_isHistoryVisible && !_isSettingsVisible && !_isPromptBoxVisible)
+			else if (!_isHistoryVisible && !_isSettingsVisible && !_isAboutBoxVisible && !_isPromptBoxVisible)
 			{
 				await _responseForFocus.FocusAsync();
 			}

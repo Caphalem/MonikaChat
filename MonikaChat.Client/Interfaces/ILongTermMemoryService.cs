@@ -7,6 +7,8 @@ namespace MonikaChat.Client.Interfaces
 	{
 		Task<ConversationMemory?> LoadConversation(string sessionId);
 
+		Task<List<ConversationMemory>> LoadAllConversations();
+
 		Task SaveConversation(string sessionId, AIChatInteraction chatStatus);
 
 		string CheckIfRememberCommand(string message);
