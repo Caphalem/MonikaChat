@@ -2,6 +2,9 @@
 
 namespace MonikaChat.Shared.Helpers
 {
+	// I'm no math wizard. Credits go to this blog post written by Alexander Bartz.
+	// https://crispycode.net/vector-search-with-c-a-practical-approach-for-small-datasets/
+	
 	public static class VectorMathHelper
 	{
 		public static double DotProduct(double[] a, double[] b)
