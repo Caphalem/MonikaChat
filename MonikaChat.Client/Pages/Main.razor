@@ -95,6 +95,9 @@ else
 		</div>
 	}
 
+	@* This adds the possibility to advance to the next sentence by clicking anywhere outside of the chatbox *@
+	<div class="next-sentence-overlay" @onclick="ShowNextSentence" style="@(ShouldShowNextArrow() ? "" : "pointer-events: none;")" />
+	
 	<div @ref="_responseForFocus" id="@CHAT_BOX_ELEMENT_ID" class="chat-box @(_isHiddenMode ? "" : "decorated") @(_backgroundAnimationToggle ? "animated" : "")" @onkeydown="HandleChatBoxKeyPress" tabindex="0" style="outline:none;">
 		<p>
 			@if (_isInputVisible)
@@ -126,7 +129,9 @@ else
 		}
 		else if (ShouldShowNextArrow())
 		{
-			<span class="next-sentence-arrow" @onclick="ShowNextSentence"></span>
+			<span class="next-sentence-arrow-container">
+				<span class="next-sentence-arrow" @onclick="ShowNextSentence" />
+			</span>
 		}
 	</div>
 
@@ -186,13 +191,13 @@ else
 		<div class="history-content about">
 			<h2>About</h2>
 			<div>
-				<h3>Chatbox:</h3><span>The chatbox—at the bottom—serves two purposes: User input message, Monika's response. It can be switched between input and response by pressing the </span><span class="demo-chatbox-button-span">Switch To Response/Input</span><span> button at the bottom of the chatbox or by pressing "Tab".</span>
+				<h3>Chatbox:</h3><span>The chatbox—at the bottom—serves two purposes: User input message, Monika's response. It can be switched between input and response by pressing the <span class="demo-chatbox-button-span">Switch To Response/Input</span> button at the bottom of the chatbox or by pressing "Tab".</span>
 			</div>
 			<div>
 				<h3>Sending a message:</h3><span>To send a typed in message: press the <button class="demo-send-button">Send</button> button at the bottom right corner of the chatbox or press "Enter".</span>
 			</div>
 			<div>
-				<h3>Viewing a response:</h3><span>Monika's responses are displayed one sentence at a time (except for code blocks which get displayed in their entirety). </span><span class="demo-next-sentence-arrow"></span> <span> is displayed at the bottom right of the chatbox to indicate that there are more sentences to display. Pressing that arrow or "Enter" will display the next sentence.</span>
+				<h3>Viewing a response:</h3><span>Monika's responses are displayed one sentence at a time (except for code blocks which get displayed in their entirety). <span class="demo-next-sentence-arrow"></span>  is displayed at the bottom right of the chatbox to indicate that there are more sentences to display. Clicking that arrow, anywhere outside of the chatbox, or hitting the "Enter" key will display the next sentence.</span>
 			</div>
 			<div>
 				<h3>Long term memory:</h3><span>Monika remembers all of the conversations with the user by storing them in a database that's kept inside of the browser (IndexedDB). This means that different devices (or browsers) will not have the same conversation memories.</span>
@@ -204,7 +209,9 @@ else
 				<h3>Source Code:</h3><span>Feel free to check out the source code of this project on GitHub: <a href="https://github.com/Caphalem/MonikaChat" target="_blank">Monika Chat</a>!</span>
 			</div>
 			<div>
-				<h3>Disclaimer:</h3><span>All rights for the "Monika" character, <a href="https://ddlc.moe/" target="_blank">Doki Doki Literature Club!</a> and <a href="https://ddlc.plus/" target="_blank">Doki Doki Literature Club Plus!</a> belong to "Team Salvato" and "Serenity Forge". Please support the official release!</span>
+				<h3>Disclaimer:</h3><span>All rights for the "Monika" character, <a href="https://ddlc.moe/" target="_blank">Doki Doki Literature Club!</a> and <a href="https://ddlc.plus/" target="_blank">Doki Doki Literature Club Plus!</a> belong to "Team Salvato" and "Serenity Forge". Please support the official release!</span> <br />
+				<span>Afternoon Club Room background can be found <a href="https://www.reddit.com/r/DDLCMods/comments/yy7ob5/ddlc_afternoon_pack_evening_versions_of_all_of" target="_blank">Here</a>!</span> <br />
+				<span>Night Club Room background can be found <a href="https://www.reddit.com/r/DDLCMods/comments/84ydsj/club_room_night_background" target="_blank">Here</a>!</span>
 			</div>
 		</div>
 		<footer><span class="note">Made with love by Caphalem.</span></footer>
