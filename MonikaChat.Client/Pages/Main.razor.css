@@ -29,12 +29,17 @@ body, html {
     }
 }
 
-.next-sentence-arrow {
+.next-sentence-arrow-container {
     position: absolute;
-    bottom: 10px;
-    right: 30px;
+    bottom: 0px;
+    right: 0px;
     cursor: pointer;
-    width: 30px;
+    width: 70px;
+    height: 35px;
+}
+
+.next-sentence-arrow {
+    width: 40px;
     height: 30px;
     color: #046307;
     display: flex;
@@ -170,7 +175,7 @@ body, html {
     overflow: hidden; /* Ensure overflow is hidden for the outer box */
     border: 5px solid rgb(230, 255, 245);
     border-radius: 25px;
-    z-index: 2;
+    z-index: 3;
     text-align: left;
     color: #fff;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
@@ -195,10 +200,11 @@ body, html {
         font-family: "DejaVu Sans", sans-serif; /* Ensure the font is applied */
 
         color: #ffffff;
-        padding: 10px;
         text-shadow: -1px 1px 2px #000, 1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000;
+        padding: 10px; /* Add some padding for spacing */
+        margin-bottom: 20px;
         position: relative;
-        z-index: 2;
+        z-index: 3;
         white-space: pre-wrap;
     }
 
@@ -211,10 +217,9 @@ body, html {
         font-size: 28px; /* Match font size */
         font-family: "DejaVu Sans", sans-serif; /* Ensure the font matches */
         color: #ffffff; /* Match text color */
-        padding: 10px; /* Add some padding for spacing */
         text-shadow: -1px 1px 2px #000, 1px 1px 2px #000, 1px -1px 2px #000, -1px -1px 2px #000; /* Match text shadow */
         position: relative;
-        z-index: 2;
+        z-index: 3;
         white-space: pre-wrap;
     }
 
@@ -327,6 +332,15 @@ body, html {
         pointer-events: auto; /* Enable interactions when visible */
     }
 
+.next-sentence-overlay {
+    position: fixed; /* Fixed position to cover the whole viewport */
+    top: 0; /* Align to the top */
+    left: 0; /* Align to the left */
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    z-index: 2; /* Ensure it sits above other content but below settings box, history box and text box */
+}
+
 .prompt-box {
     position: fixed;
     top: 50%;
@@ -413,15 +427,22 @@ body, html {
 .history-content.about {
     height: 91%; /* extra 4% for footer */
 }
+    .history-content.about span {
+        color: #046307;
+        text-shadow: none;
+        font-weight: bold;
+    }
 
     .history-content p {
         font-size: 20px;
-        color: #ffffff;
+        color: #046307;
+        text-shadow: -1px 1px 1px #fff, 1px 1px 1px #fff, 1px -1px 1px #fff, -1px -1px 1px #fff;
         white-space: pre-wrap;
     }
 
     .history-content a {
         color: rgba(194, 242, 194, 1);
+        text-shadow: -1px 1px 1px #000, 1px 1px 1px #000, 1px -1px 1px #000, -1px -1px 1px #000;
     }
 
 .history-box {
