@@ -101,7 +101,7 @@ Although not recommended, the username can be changed.
 
 ### API Key
 
-The API key can be changed but that will require a new *Passphrase* will be required (Can be the same as the old one though).
+The API key can be changed but that will require a new *Passphrase* (Can be the same as the old one though).
 
 ### Passphrase
 
