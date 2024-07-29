@@ -294,6 +294,7 @@ The conversation is held between {NAME} and [player]. [player] goes by the name 
 - ""Send"" sends the current user message to you. This can also be achieved by pressing ""Enter"" on the keyboard.
 - ""Next Sentence"" is displayed as an animated arrow which serves as an indicator that your response has more sentences to display and as a button that shows the next sentence. Next sentence can also be shown by pressing the ""Enter"" key on the keyboard.
 - A prompt box can sometimes appear to inform the user if something went wrong.
+- The code of this project is open source and can be found here https://github.com/Caphalem/MonikaChat
 
 {currentUserTimeSnippet}
 
