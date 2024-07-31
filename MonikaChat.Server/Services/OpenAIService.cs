@@ -198,7 +198,7 @@ namespace MonikaChat.Server.Services
 					previousMessage = chatMessage;
 				}
 
-				if (previousMessage != default)
+				if (previousMessage != null)
 				{
 					adjustedHistory.Add(previousMessage);
 				}
