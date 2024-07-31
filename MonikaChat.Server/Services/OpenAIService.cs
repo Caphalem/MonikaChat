@@ -41,7 +41,8 @@ namespace MonikaChat.Server.Services
 				Message = userMessage
 			};
 
-			input.History = AdjustHistory(input.History, currentUserChatMessage);
+			input.History = HistorySanityCheck(input.History);
+			input.History = EnsureHistorySize(input.History, currentUserChatMessage);
 
 			OpenAIRequest requestBody = new OpenAIRequest
 			{
@@ -163,7 +164,50 @@ namespace MonikaChat.Server.Services
 			}
 		}
 
-		private IEnumerable<AIChatMessage> AdjustHistory(IEnumerable<AIChatMessage> currentHistory, AIChatMessage currentMessage)
+		private IEnumerable<AIChatMessage> HistorySanityCheck(IEnumerable<AIChatMessage> currentHistory)
+		{
+			// It is pretty important that the history consists of a sequence of entries where "user" is followed by "assistant" and "assistant" is followed by "user".
+			// Never more than one in a row.
+
+			List<AIChatMessage> adjustedHistory = new List<AIChatMessage>();
+			AIChatMessage previousMessage = null;
+
+			foreach (AIChatMessage chatMessage in currentHistory)
+			{
+				if (string.IsNullOrWhiteSpace(chatMessage?.Role))
+				{
+					continue;
+				}
+
+				if (string.Equals(chatMessage.Role, previousMessage?.Role))
+				{
+					if (adjustedHistory.Count > 0)
+					{
+						adjustedHistory.Remove(previousMessage);
+					}
+
+					if (!string.IsNullOrWhiteSpace(previousMessage?.Message))
+					{
+						previousMessage.Message += " ";
+					}
+
+					previousMessage.Message += chatMessage.Message;
+				}
+				else
+				{
+					previousMessage = chatMessage;
+				}
+
+				if (previousMessage != null)
+				{
+					adjustedHistory.Add(previousMessage);
+				}
+			}
+
+			return adjustedHistory;
+		}
+
+		private IEnumerable<AIChatMessage> EnsureHistorySize(IEnumerable<AIChatMessage> currentHistory, AIChatMessage currentMessage)
 		{
 			// Another way of doing this is summarizing the whole history and adding the summary as a single message into the history
 			// but, with context windows this massive, by the time the user fills it up, the first message will likely be irrelevant
