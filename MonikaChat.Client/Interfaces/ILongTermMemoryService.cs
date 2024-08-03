@@ -9,7 +9,9 @@ namespace MonikaChat.Client.Interfaces
 
 		Task<List<ConversationMemory>> LoadAllConversations();
 
-		Task SaveConversation(string sessionId, AIChatInteraction chatStatus);
+		Task SaveConversation(string sessionId, string apiKey, string history);
+
+		string StringifyHistory(IEnumerable<AIChatMessage> history);
 
 		string CheckIfRememberCommand(string message);
 

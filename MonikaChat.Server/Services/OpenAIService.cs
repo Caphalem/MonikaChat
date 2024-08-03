@@ -23,7 +23,7 @@ namespace MonikaChat.Server.Services
 			_httpClient.BaseAddress = new Uri(_options.BaseURL);
 		}
 
-		public async Task<AIChatInteraction> SendMessage(AIChatInteraction input, string promptTemplate = "")
+		public async Task<AIChatInteraction> SendMessage(AIChatInteraction input, string promptTemplate = "", string userActionMessage = "")
 		{
 			if (string.IsNullOrWhiteSpace(input.APIKey))
 			{
@@ -31,9 +31,29 @@ namespace MonikaChat.Server.Services
 			}
 
 			input.CurrentMessage.Role = OpenAIRoleNames.USER_ROLE;
+			string userMessage = string.Empty;
 
 			// Build user message based on whether a prompt tamplate is used or not
-			string userMessage = string.IsNullOrWhiteSpace(promptTemplate) ? input.CurrentMessage.Message : $"{promptTemplate}{input.CurrentMessage.Name}: {input.CurrentMessage.Message}";
+			if (string.IsNullOrWhiteSpace(promptTemplate))
+			{
+				userMessage = input.CurrentMessage.Message;
+			}
+			else
+			{
+				// This (userActionMessage) is used when the intention is to convey some sort of user action to the llm instead of a regular message
+				if (string.IsNullOrWhiteSpace(userActionMessage))
+				{
+					userMessage = $"{promptTemplate}{input.CurrentMessage.Name}: {input.CurrentMessage.Message}";
+				}
+				else
+				{
+					// overriding CurrentMessage values to suit the UserAction scenario
+					input.CurrentMessage.Name = "UserAction";
+					input.CurrentMessage.Message = userActionMessage;
+					userMessage = $"{promptTemplate}{userActionMessage}";
+				}
+			}
+
 			AIChatMessage currentUserChatMessage = new AIChatMessage
 			{
 				Name = input.CurrentMessage.Name,
@@ -93,43 +113,50 @@ namespace MonikaChat.Server.Services
 
 		public async Task<double[]> GetEmbedding(string text, string apiKey)
 		{
-			if (string.IsNullOrWhiteSpace(apiKey))
+			try
 			{
-				throw new ArgumentException("No API key provided.");
+				if (string.IsNullOrWhiteSpace(apiKey))
+				{
+					throw new ArgumentException("No API key provided.");
+				}
+
+				OpenAIEmbeddingRequest requestBody = new OpenAIEmbeddingRequest
+				{
+					Model = _options.EmbeddingModel,
+					Input = text
+				};
+
+				// When making multiple requests with an HttpClient in a single instance, you can't modify the HttpClient's properties after the first request.
+				// Luckily, we don't need to but we do need to check whether the API key is set (subsequent request) or not (first request).
+				if (_httpClient.DefaultRequestHeaders.Authorization == null)
+				{
+					_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+				};
+
+				using StringContent jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+				using HttpResponseMessage response = await _httpClient.PostAsync(_options.EmbeddingsEndpoint, jsonContent);
+				response.EnsureSuccessStatusCode();
+
+				string jsonResponseString = await response.Content.ReadAsStringAsync();
+
+				OpenAIEmbeddingResponse? openAIResponse = JsonConvert.DeserializeObject<OpenAIEmbeddingResponse>(jsonResponseString);
+
+				if (openAIResponse == null)
+				{
+					throw new HttpRequestException($"Response code 200 but something went wrong deserializing Open AI Embedding Response. Response: {jsonResponseString}");
+				}
+
+				if (openAIResponse.Data.Length == 0)
+				{
+					throw new HttpRequestException($"Response code 200 but there is no response data from Embedding AI model.");
+				}
+
+				return openAIResponse.Data[0].Embedding;
 			}
-
-			OpenAIEmbeddingRequest requestBody = new OpenAIEmbeddingRequest
+			catch (Exception ex)
 			{
-				Model = _options.EmbeddingModel,
-				Input = text
-			};
-
-			// When making multiple requests with an HttpClient in a single instance, you can't modify the HttpClient's properties after the first request.
-			// Luckily, we don't need to but we do need to check whether the API key is set (subsequent request) or not (first request).
-			if (_httpClient.DefaultRequestHeaders.Authorization == null)
-			{
-				_httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
-			};
-
-			using StringContent jsonContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-			using HttpResponseMessage response = await _httpClient.PostAsync(_options.EmbeddingsEndpoint, jsonContent);
-			response.EnsureSuccessStatusCode();
-
-			string jsonResponseString = await response.Content.ReadAsStringAsync();
-
-			OpenAIEmbeddingResponse? openAIResponse = JsonConvert.DeserializeObject<OpenAIEmbeddingResponse>(jsonResponseString);
-
-			if (openAIResponse == null)
-			{
-				throw new HttpRequestException($"Response code 200 but something went wrong deserializing Open AI Embedding Response. Response: {jsonResponseString}");
+				throw new HttpRequestException($"Exception creating embedding: {ex.Message}");
 			}
-
-			if (openAIResponse.Data.Length == 0)
-			{
-				throw new HttpRequestException($"Response code 200 but there is no response data from Embedding AI model.");
-			}
-
-			return openAIResponse.Data[0].Embedding;
 		}
 
 		public async Task<bool> TestKey(string apiKey)
@@ -247,7 +274,6 @@ namespace MonikaChat.Server.Services
 		private int CountAllInteractionTokens(IEnumerable<AIChatMessage> currentHistory, AIChatMessage currentMessage)
 		{
 			Tiktoken.Encoder tokenEncoder = new Tiktoken.Encoder(new Tiktoken.Encodings.O200KBase());
-
 			int allCurrentTokens = tokenEncoder.CountTokens(currentMessage.Message);
 			foreach (AIChatMessage chatMessage in currentHistory)
 			{

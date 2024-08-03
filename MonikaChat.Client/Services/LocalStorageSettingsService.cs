@@ -6,8 +6,8 @@ namespace MonikaChat.Client.Services
     public class LocalStorageSettingsService : ISettingsService
     {
         private const int MIN_TEXT_SPEED = 0;
-        private const int MAX_TEXT_SPEED = 10;
-        private const int DEFAULT_TEXT_SPEED = 5;
+        private const int MAX_TEXT_SPEED = 20;
+        private const int DEFAULT_TEXT_SPEED = 10;
 		private const string USERNAME_SETTING_NAME = "username";
         private const string API_KEY_SETTING_NAME = "apiKey";
         private const string TEXT_SPEED_SETTING_NAME = "textSpeed";
