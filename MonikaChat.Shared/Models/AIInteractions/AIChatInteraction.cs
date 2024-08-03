@@ -10,6 +10,9 @@ namespace MonikaChat.Shared.Models.AIInteractions
         [JsonProperty("currentMessage")]
         public AIChatMessage CurrentMessage { get; set; } = new AIChatMessage();
 
+        [JsonProperty("spriteClickEvent")]
+        public bool IsSpriteClickEvent = false;
+
         [JsonProperty("currentDateTime")]
         public DateTime CurrentDateTime { get; set; } = DateTime.Now;
 

@@ -39,8 +39,16 @@ namespace MonikaChat.Server.Services
 				input.History = chatHistory;
 				string promptTemplate = promptTemplateOverride ?? MonikaConstants.BuildPromptTemplate(MonikaConstants.REMEMBRANCE_ABILITY_INSTRUCTION);
 
-				// Sending user message
-				result = await _llmService.SendMessage(input, promptTemplate);
+				// Sending user message or action
+				if (input.IsSpriteClickEvent)
+				{
+					string userActionMessage = MonikaConstants.BuildSpriteClickEventActionMessage(input.CurrentMessage.Name);
+					result = await _llmService.SendMessage(input, promptTemplate, userActionMessage);
+				}
+                else
+                {
+					result = await _llmService.SendMessage(input, promptTemplate);
+				}
 
 				// Making sure all of Monika's responses has her name assigned to them
 				foreach (AIChatMessage message in result.History.Where(m => m.Role == OpenAIRoleNames.AI_ROLE))
@@ -165,16 +173,23 @@ namespace MonikaChat.Server.Services
 		public static readonly string NAME = "Monika";
 		public static readonly string REMEMBRANCE_ABILITY_INSTRUCTION = $"{Environment.NewLine}**You can recall information from past conversations:** Whenever you want to recall something that you currently don't know, respond with \"{{{{Remember: <Write a question of what to remember here.>}}}}\" (e.g. \"{{{{Remember: What is [player]’s cat’s name?}}}}\"). Use this ability often in order to have a more informed and personal conversation.{Environment.NewLine}";
 
-		public static string BuildChatContext(string username, string lastConversationSummary) => $"The User that you are talking to now is, what you knew as, [player] from back in the game. [player] goes by the name of \"{username}\". Here's a summary of the last conversation you had with \"{username}\": {lastConversationSummary}";
+		public static string BuildSpriteClickEventActionMessage(string username) =>
+			$"Looks like instead of writing a message {username} clicked your sprite {SharedConstants.SPRITE_CLICK_TRIGGER_AMOUNT} times!";
+
+		public static string BuildChatContext(string username, string lastConversationSummary) =>
+			$"The User that you are talking to now is, what you knew as, [player] from back in the game. [player] goes by the name of \"{username}\". Here's a summary of the last conversation you had with \"{username}\": {lastConversationSummary}";
 		
-		public static string BuildLastConversationSummaryQuestion(string username) => $"What was the last thing I was talking about with {username}? Summarize it.";
+		public static string BuildLastConversationSummaryQuestion(string username) =>
+			$"What was the last thing I was talking about with {username}? Summarize it.";
 		
-		public static string BuildResolvedMemoriesSnippet(string resolvedMemories) => @$"{Environment.NewLine}The following are memories that you tried to recall from past conversations.
+		public static string BuildResolvedMemoriesSnippet(string resolvedMemories) =>
+			@$"{Environment.NewLine}The following are memories that you tried to recall from past conversations.
 **What you managed to remember:**
 {resolvedMemories}
 {Environment.NewLine}";
 
-		public static string BuildCurrentUserTimeSnippet(string currentTime) => $"**Current Time:** Make sure [player] isn't staying up too late! The current time is: {currentTime}";
+		public static string BuildCurrentUserTimeSnippet(string currentTime) =>
+			$"**Current Time:** Make sure [player] isn't staying up too late! The current time is: {currentTime}";
 
 		public static string BuildRememberPromptTemplate(string question, string rememberedConversation) =>
 			@$"QUESTION: {question}
@@ -186,7 +201,7 @@ namespace MonikaChat.Server.Services
 @$"
 This is the reminder on how you structure your response.
 
-**Your Sprites:** You like to express your emotions and you do so by using one of **Your Available Sprites**. After ending a sentence, you can display a sprite by adding {{{{sprite-name}}}}. The name of the sprite describes what kind of emotions it conveys. Try using a different, appropriate sprite after each sentence. (e.g. Ahaha. {{{{happy-joyful-laugh}}}} Well, I'm glad that's settled. I think...the question is how to come up with an event that demonstrates everything you can get out of the Literature Club. {{{{considering-pondering}}}}).
+**Your Sprites:** You like to express your emotions and you do so by using sprites from the **Your Available Sprites** list. After ending a sentence, you can display a sprite by adding {{{{sprite-name}}}}. The name of the sprite describes what kind of emotions it conveys. Try using a different, appropriate sprite after each sentence. (e.g. Ahaha. {{{{happy-joyful-laugh}}}} Well, I'm glad that's settled. I think...the question is how to come up with an event that demonstrates everything you can get out of the Literature Club. {{{{considering-pondering}}}}).
 
 **Aspects of Your Idiolect:**
 - Use casual phrases and fillers like ""you know,"" ""totally,"" ""right,"" ""seriously,"" etc.

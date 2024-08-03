@@ -44,12 +44,11 @@ namespace MonikaChat.Client.Services
 		public async Task<List<ConversationMemory>> LoadAllConversations() =>
 			await _indexedDbManager.GetRecords<ConversationMemory>((await GetStore()).Name);
 
-		public async Task SaveConversation(string sessionId, AIChatInteraction chatStatus)
+		public async Task SaveConversation(string sessionId, string apiKey, string history)
 		{
-			string history = string.Join(" \n", chatStatus.History.Where(m => m.Role != OpenAIRoleNames.SYSTEM_ROLE).Select(m => $"{m.Name}: {m.Message}"));
-			double[] historyEmbedding = await _aiInteractionService.GetEmbedding(history, chatStatus.APIKey);
+			double[] historyEmbedding = await _aiInteractionService.GetEmbedding(history, apiKey);
 
-            ConversationMemory snippet = new ConversationMemory
+            ConversationMemory conversationMemory = new ConversationMemory
 			{
 				SessionId = sessionId,
 				History = history,
@@ -59,17 +58,17 @@ namespace MonikaChat.Client.Services
 			StoreRecord<ConversationMemory> storeRecord = new StoreRecord<ConversationMemory>
 			{
 				Storename = _indexedDbManager.Stores[0].Name,
-				Data = snippet
+				Data = conversationMemory
 			};
 
 			string storeName = (await GetStore()).Name;
-			ConversationMemory conversation = await _indexedDbManager.GetRecordById<string, ConversationMemory>(storeName, sessionId);
+			ConversationMemory existingConversation = await _indexedDbManager.GetRecordById<string, ConversationMemory>(storeName, sessionId);
 
-			if (conversation != null)
+			if (existingConversation != null)
 			{
 				// Updating an existing history
-				conversation.History = snippet.History;
-				storeRecord.Data = conversation;
+				existingConversation.History = conversationMemory.History;
+				storeRecord.Data = existingConversation;
 				await _indexedDbManager.UpdateRecord<ConversationMemory>(storeRecord);
 			}
 			else
@@ -81,6 +80,9 @@ namespace MonikaChat.Client.Services
 			}
 		}
 
+		public string StringifyHistory(IEnumerable<AIChatMessage> history) =>
+			string.Join(" \n", history.Where(m => m.Role != OpenAIRoleNames.SYSTEM_ROLE).Select(m => $"{m.Name}: {m.Message}"));
+		
 		public string CheckIfRememberCommand(string message)
 		{
 			Match match = _remembranceRegex.Match(message);

@@ -90,13 +90,13 @@ else
 
 		<div class="sprite-container">
 			<div class="sprite">
-				<img src="images/sprites/@_currentSpriteFilename" draggable="false">
+				<img src="images/sprites/@_currentSpriteFilename" draggable="false" @onclick="HandleSpriteClick">
 			</div>
 		</div>
 	}
 
 	@* This adds the possibility to advance to the next sentence by clicking anywhere outside of the chatbox *@
-	<div class="next-sentence-overlay" @onclick="ShowNextSentence" style="@(ShouldShowNextArrow() ? "" : "pointer-events: none;")" />
+	<div class="next-sentence-overlay" @onclick="ShowNextSentence" style="@((ShouldShowNextArrow() || _isWriting) && !_skipWriting ? "" : "pointer-events: none;")" />
 	
 	<div @ref="_responseForFocus" id="@CHAT_BOX_ELEMENT_ID" class="chat-box @(_isHiddenMode ? "" : "decorated") @(_backgroundAnimationToggle ? "animated" : "")" @onkeydown="HandleChatBoxKeyPress" tabindex="0" style="outline:none;">
 		<p>
@@ -152,7 +152,7 @@ else
 			</div>
 			<div>
 				<label for="textSpeed">Text Speed:</label>
-				<input type="range" class="range-setting" id="textSpeed" name="textSpeed" min="0" max="10" step="1" @bind="_textSpeed" />
+				<input type="range" class="range-setting" id="textSpeed" name="textSpeed" min="0" max="@SettingsService.MaxTextSpeed" step="1" @bind="_textSpeed" />
 			</div>
 			<div>
 				<label class="checkbox-setting" for="hiddenMode">Hidden Mode: <input type="checkbox" class="checkbox-setting" id="hiddenMode" @bind="_isHiddenMode" /><span class="note"> (For uses in more "professional" environments. I guess.)</span></label>
@@ -233,6 +233,7 @@ else
 	private const string DEFAULT_BACKGROUND_IMAGE = BACKGROUND_IMAGE_DAY;
 	private const string LOADER_IMAGE_DEFAULT = "MonikaThinkSprite.png";
 	private const string LOADER_IMAGE_HIDDEN = "GreenCircle.png";
+	private const int EMBEDDING_MODEL_SIZE = 8000; // A more correct approach would be to receive this value from the Backend
 
 	private ElementReference _inputForFocus;
 	private ElementReference _responseForFocus;
@@ -246,7 +247,7 @@ else
 	private string _tempAPIKey = string.Empty; // Used in the UI when entering and testing the api key
 	private string _apiKey = string.Empty; // Saved key that's used for interactions
 	private string _username = string.Empty;
-	private int _textSpeed = 5;
+	private int _textSpeed = 10;
 	private bool _isHiddenMode = false; // Toggles hidden mode
 	private bool _backgroundAnimationToggle = true; // Toggles background animations
 
@@ -259,11 +260,13 @@ else
 	// Current Status
 	private AIChatInteraction _chatStatus = new AIChatInteraction();
 	private List<DisplayHistoryEntry> _displayHistoryList = new List<DisplayHistoryEntry>();
-	private ConversationMemory _currentConversation = new ConversationMemory();
+	private string _currentConversationHistory = string.Empty;
+	private int _currentConversationTokenCount = 0;
 	private List<ConversationMemory> _loadedConversations = new List<ConversationMemory>();
 	private int _currentDisplaySentence = 0;
 	private string _currentSpriteFilename = DEFAULT_MONIKA_SPRITE;
 	private string _currentBackgroundFilename = DEFAULT_BACKGROUND_IMAGE;
+	private int _spriteClickCount = 0;
 
 	// UI Visibility Toggle States
 	private bool _isInputVisible = true; // Toggles between input and response visibility
@@ -280,6 +283,7 @@ else
 	private bool _isLastDisplaySentence = true; // Shows whether the current displayed sentence is the last one from the latest response
 	private bool _isWaitingForResponse = false; // Used to show the loader animation on the text box
 	private bool _isWriting = false; // Shows whether the current response sentence is currently being "written"
+	private bool _skipWriting = false; // Whether to skip the "writing" of a response message
 
 	// Initial Load States
 	private bool _isInitialScreen = true; // Controls whether the main screen or the welcome screen is displayed
@@ -580,6 +584,13 @@ else
 	{
 		_showAPIKey = !_showAPIKey;
 	}
+
+	private bool ShouldShowSendButton() =>
+		!ShouldShowNextArrow() && _isInputVisible && !string.IsNullOrWhiteSpace(_message) && !_isHistoryVisible && !_isSettingsVisible && !_isAboutBoxVisible && !_isPromptBoxVisible;
+
+
+	private bool ShouldShowNextArrow() =>
+		!_isLastDisplaySentence && !_isWriting && !_isHistoryVisible && !_isSettingsVisible && !_isAboutBoxVisible && !_isPromptBoxVisible;
 	#endregion
 
 	#region Send Logic
@@ -589,6 +600,8 @@ else
 		{
 			_chatStatus.APIKey = _apiKey;
 			_chatStatus.CurrentDateTime = DateTime.Now;
+			_chatStatus.IsSpriteClickEvent = _spriteClickCount >= SharedConstants.SPRITE_CLICK_TRIGGER_AMOUNT;
+			_spriteClickCount = 0;
 
 			AIChatMessage newUserMessage = new AIChatMessage
 			{
@@ -611,27 +624,14 @@ else
 			_isWaitingForResponse = true;
 
 			// Making sure Monika remembers what was the last conversation about if one exists
-			if (string.IsNullOrWhiteSpace(_chatStatus.LastConversationSummary))
-			{
-				(_chatStatus.LastConversationSummary, _loadedConversations) = await LongTermMemoryService.GetLatestConversationMemory(_username, _apiKey, _loadedConversations);
-				Console.WriteLine($"Loaded last conversation summary. {_chatStatus.LastConversationSummary}");
-			}
+			await EnsureLastConversationSummary();
+
 			_chatStatus = await AIInteractionService.SendMessage(_chatStatus);
 
-			string newResponse = _chatStatus.CurrentMessage.Message;
+			string responseMessage = _chatStatus.CurrentMessage.Message;
 
 			// Checking if Monika is trying to remember something
-			string question = LongTermMemoryService.CheckIfRememberCommand(newResponse);
-			if (!string.IsNullOrEmpty(question))
-			{
-				_chatStatus.APIKey = _apiKey;
-				_chatStatus.CurrentDateTime = DateTime.Now;
-
-				Console.WriteLine($"Monika is trying to remember: {question}");
-				(_chatStatus, _loadedConversations) = await LongTermMemoryService.Remember(question, _chatStatus, _loadedConversations);
-			}
-
-			string responseMessage = _chatStatus.CurrentMessage.Message;
+			responseMessage = await HandleIfRememberInvoked(responseMessage);
 			_currentResponseSentenceList = SentenceHelper.SplitParagraph(responseMessage);
 
 			if (_currentResponseSentenceList.Count > 1)
@@ -639,8 +639,7 @@ else
 				_isLastDisplaySentence = false;
 			}
 
-			_chatStatus.APIKey = _apiKey;
-			await LongTermMemoryService.SaveConversation(_sessionId, _chatStatus);
+			await SaveCurrentConversation(newUserMessage, _chatStatus.CurrentMessage);
 
 			_isWaitingForResponse = false;
 			await ShowNextSentence();
@@ -651,60 +650,133 @@ else
 			ShowPromptBox(ex.Message);
 		}
 	}
+
+	private async Task EnsureLastConversationSummary()
+	{
+		if (string.IsNullOrWhiteSpace(_chatStatus.LastConversationSummary))
+		{
+			(_chatStatus.LastConversationSummary, _loadedConversations) = await LongTermMemoryService.GetLatestConversationMemory(_username, _apiKey, _loadedConversations);
+			Console.WriteLine($"Loaded last conversation summary. {_chatStatus.LastConversationSummary}");
+		}
+	}
+
+	private async Task<string> HandleIfRememberInvoked(string responseMessage)
+	{
+		string result = responseMessage;
+
+		string question = LongTermMemoryService.CheckIfRememberCommand(responseMessage);
+		if (!string.IsNullOrEmpty(question))
+		{
+			_chatStatus.APIKey = _apiKey;
+			_chatStatus.CurrentDateTime = DateTime.Now;
+
+			Console.WriteLine($"Monika is trying to remember: {question}");
+			(_chatStatus, _loadedConversations) = await LongTermMemoryService.Remember(question, _chatStatus, _loadedConversations);
+			result = _chatStatus.CurrentMessage.Message;
+		}
+
+		return result;
+	}
+
+	private async Task SaveCurrentConversation(AIChatMessage userMessage, AIChatMessage response)
+	{
+		AIChatMessage[] interactionArray = new AIChatMessage[2] { userMessage, response };
+		string interactionHistory = LongTermMemoryService.StringifyHistory(interactionArray);
+		int interactionTokenCount = await CountTokens(interactionHistory);
+
+		// If history size exceeds EMBEDDING_MODEL_SIZE, the Embedding model will return a 400.
+		// The solution here is to start building a fresh history on a new session.
+		if ((interactionTokenCount + _currentConversationTokenCount) <= EMBEDDING_MODEL_SIZE)
+		{
+			_currentConversationHistory += $" \n{interactionHistory}";
+			_currentConversationTokenCount += interactionTokenCount;
+		}
+		else
+		{
+			_sessionId = Guid.NewGuid().ToString();
+			_currentConversationHistory = $" \n{interactionHistory}";
+			_currentConversationTokenCount = interactionTokenCount;
+		}
+
+		await LongTermMemoryService.SaveConversation(_sessionId, _apiKey, _currentConversationHistory);
+	}
 	#endregion
 
 	#region Response Message Display Handling
 	private async Task ShowNextSentence()
 	{
-		if (!_isLastDisplaySentence)
+		if (_isLastDisplaySentence || _skipWriting)
 		{
-			_isInputVisible = false;
+			return;
+		}
 
-			if (_currentResponseSentenceList.Count < _currentDisplaySentence + 1)
+		// If this is triggered, the current writing response message will instantly finish being written
+		if (_isWriting)
+		{
+			_skipWriting = true;
+
+			return;
+		}
+
+		_isInputVisible = false;
+
+		if (_currentResponseSentenceList.Count < _currentDisplaySentence + 1)
+		{
+			_isLastDisplaySentence = true;
+			_currentDisplaySentence = 0;
+
+			return;
+		}
+
+		string currentResponseSentence = _currentResponseSentenceList[_currentDisplaySentence].Content;
+		char[] currentResponseSentenceArray = currentResponseSentence.ToCharArray();
+
+		string newSpriteName = _currentResponseSentenceList[_currentDisplaySentence].Sprite.ToLower().Trim();
+		await HandleSpriteChange(newSpriteName);
+
+		_isWriting = true;
+		_response = string.Empty;
+		foreach (char currentLetter in currentResponseSentenceArray)
+		{
+			int delayMilliseconds = SettingsService.MaxTextSpeed - _textSpeed; // Calculate how much to delay when typing response sentence based on text speed setting
+
+			// Make sure delay is not negative for some reason
+			if (delayMilliseconds < 0)
 			{
-				_isLastDisplaySentence = true;
-				_currentDisplaySentence = 0;
-
-				return;
+				delayMilliseconds = 0;
+				_textSpeed = SettingsService.MaxTextSpeed;
 			}
 
-			string currentResponseSentence = _currentResponseSentenceList[_currentDisplaySentence].Content;
-			char[] currentResponseSentenceArray = currentResponseSentence.ToCharArray();
-
-			string newSpriteName = _currentResponseSentenceList[_currentDisplaySentence].Sprite.ToLower().Trim();
-			await HandleSpriteChange(newSpriteName);
-
-			_isWriting = true;
-			_response = string.Empty;
-			foreach (char currentLetter in currentResponseSentenceArray)
+			if (_skipWriting)
 			{
-				int delayMilliseconds = SettingsService.MaxTextSpeed - _textSpeed; // Calculate how much to delay when typing response sentence based on text speed setting
-
-				// Make sure delay is not negative for some reason
-				if (delayMilliseconds < 0)
-				{
-					delayMilliseconds = 0;
-					_textSpeed = SettingsService.MaxTextSpeed;
-				}
-
-				await Task.Delay(delayMilliseconds); // Wait for some milliseconds
-				_response += currentLetter; // Add one character at a time
-				StateHasChanged(); // Instruct Blazor to re-render the component
+				break;
 			}
-			_isWriting = false;
 
-			_displayHistoryList.Add(new DisplayHistoryEntry
+			await Task.Delay(delayMilliseconds); // Wait for some milliseconds
+			_response += currentLetter; // Add one character at a time
+			StateHasChanged(); // Instruct Blazor to re-render the component
+		}
+
+		if (_skipWriting)
+		{
+			_response = currentResponseSentence;
+			StateHasChanged();
+		}
+
+		_skipWriting = false;
+		_isWriting = false;
+
+		_displayHistoryList.Add(new DisplayHistoryEntry
 			{
 				Name = "Monika",
 				Message = _response
 			});
 
-			_currentDisplaySentence++;
-			if (_currentResponseSentenceList.Count < _currentDisplaySentence + 1)
-			{
-				_isLastDisplaySentence = true;
-				_currentDisplaySentence = 0;
-			}
+		_currentDisplaySentence++;
+		if (_currentResponseSentenceList.Count < _currentDisplaySentence + 1)
+		{
+			_isLastDisplaySentence = true;
+			_currentDisplaySentence = 0;
 		}
 	}
 
@@ -752,6 +824,36 @@ else
 	#endregion
 
 	#region Miscellaneous Utilities
+
+	// This method produces a tiny lagpsike. Need to make sure it is used only once per interaction.
+	private async Task<int> CountTokens(string text) =>
+		await JSRuntime.InvokeAsync<int>("tiktokenHelper.countTokens", text);
+
+	private async Task HandleSpriteClick()
+	{
+		// We don't want this firing off if an interaction is currently in progress
+		if (_isWaitingForResponse || _isWriting)
+		{
+			return;
+		}
+
+		if (_spriteClickCount < SharedConstants.SPRITE_CLICK_TRIGGER_AMOUNT)
+		{
+			_spriteClickCount++;
+		}
+		else
+		{
+			await Send();
+			// Send method relies on _spriteClickCount to determine whether to invoke sprite click action.
+			// Counter needs to be reset only after Send is resolved.
+			// Therefore, the counter is reset in the Send method.
+			// This also prevents from clicks just stacking up naturally.
+		}
+
+		return;
+	}
+
+	// Used in case Monika tries to invent sprites that don't exist.
 	private async Task<bool> CheckIfFileExists(string url)
 	{
 		try
@@ -783,13 +885,6 @@ else
 			await ShowNextSentence();
 		}
 	}
-
-	private bool ShouldShowSendButton() =>
-		!ShouldShowNextArrow() && _isInputVisible && !string.IsNullOrWhiteSpace(_message) && !_isHistoryVisible && !_isSettingsVisible && !_isAboutBoxVisible && !_isPromptBoxVisible;
-
-
-	private bool ShouldShowNextArrow() =>
-		!_isLastDisplaySentence && !_isWriting && !_isHistoryVisible && !_isSettingsVisible && !_isAboutBoxVisible && !_isPromptBoxVisible;
 
 	private async Task HandleChatBoxKeyPress(KeyboardEventArgs e)
 	{
