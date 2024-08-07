@@ -1,4 +1,4 @@
-﻿/* Monika initially wrote this. Then I heavily modified it making this glorious mess.*/
+﻿/* Monika initially wrote this. Then I heavily modified it— making this a glorious mess.*/
 
 body, html {
     margin: 0;
@@ -410,10 +410,11 @@ body, html {
     }
 
         .settings-box.show.initial {
-            top: 80%;
-            width: auto;
-            min-width: 30%;
-            max-width: 100%;
+            transform: translateX(-50%);
+            top: initial;
+            bottom: 5%;
+            width: 30%;
+            min-width: 500px;
             background-color: rgba(194, 242, 194, 1);
             background-image: none;
         }
@@ -609,6 +610,8 @@ input.range-setting {
 
         .settings-box.show.initial {
             height: auto;
+            bottom: 0;
+            min-width: initial;
         }
 
     .settings-content {
